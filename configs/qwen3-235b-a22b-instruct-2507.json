@@ -1,0 +1,67 @@
+{
+  "integrity": {
+    "enforce_on_wait": false,
+    "expected_snapshot_manifest": "manifests/qwen3-235b-a22b-instruct-2507/{revision}.sha256"
+  },
+  "model": {
+    "id": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+    "locked_at_utc": "2026-02-11T08:15:24Z",
+    "revision": "ac9c66cc9b46af7306746a9250f23d47083d689e",
+    "served_name": "qwen3-235b-a22b-instruct-2507"
+  },
+  "profile": {
+    "description": "Reference profile for Qwen3-235B-A22B-Instruct-2507 with deterministic-oriented vLLM flags.",
+    "id": "qwen3-235b-a22b-instruct-2507-fp16"
+  },
+  "runtime": {
+    "api_host": "0.0.0.0",
+    "compose_project_name": "vllm_qwen3_235b_a22b_2507",
+    "container_name": "vllm_qwen3_235b_a22b_2507",
+    "container_port": 8000,
+    "environment": {
+      "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+      "CUDA_DEVICE_MAX_CONNECTIONS": "1",
+      "HF_HOME": "/data/hf"
+    },
+    "gpus": "all",
+    "host_port": 8000,
+    "image": "vllm/vllm-openai:v0.8.5.post1",
+    "ipc_mode": "host",
+    "memlock": -1,
+    "paths": {
+      "artifacts": "artifacts",
+      "hf_cache": "state/hf"
+    },
+    "required_secret_env": [
+    ],
+    "restart": "unless-stopped",
+    "stack": 67108864
+  },
+  "sampling_defaults": {
+    "chunk_max_tokens": 1024,
+    "seed": 424242,
+    "target_tokens": 20000,
+    "temperature": 0.0,
+    "timeout_seconds": 600,
+    "top_p": 0.95
+  },
+  "schema_version": 1,
+  "smoke_test": {
+    "max_tokens": 32,
+    "prompt": "Write exactly one sentence that says the server is healthy.",
+    "seed": 424242,
+    "temperature": 0.0
+  },
+  "vllm": {
+    "flags": [
+      "--dtype=float16",
+      "--tensor-parallel-size=8",
+      "--pipeline-parallel-size=1",
+      "--max-model-len=32768",
+      "--seed=424242",
+      "--max-num-seqs=1",
+      "--enforce-eager",
+      "--disable-log-requests"
+    ]
+  }
+}

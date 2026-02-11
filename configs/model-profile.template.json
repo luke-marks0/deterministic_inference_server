@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "profile": {
+    "id": "my-model-profile",
+    "description": "Replace with model + stack details."
+  },
+  "runtime": {
+    "image": "vllm/vllm-openai:v0.8.5.post1",
+    "gpus": "all",
+    "ipc_mode": "host",
+    "restart": "unless-stopped",
+    "host_port": 8000,
+    "container_port": 8000,
+    "api_host": "0.0.0.0",
+    "container_name": "vllm_my_model",
+    "compose_project_name": "vllm_my_model",
+    "required_secret_env": [
+      "HUGGING_FACE_HUB_TOKEN"
+    ],
+    "memlock": -1,
+    "stack": 67108864,
+    "paths": {
+      "hf_cache": "state/hf",
+      "artifacts": "artifacts"
+    },
+    "environment": {
+      "HF_HOME": "/data/hf",
+      "CUDA_DEVICE_MAX_CONNECTIONS": "1",
+      "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+    }
+  },
+  "model": {
+    "id": "org/model-name",
+    "revision": "UNSET_RUN_LOCK_SCRIPT",
+    "locked_at_utc": "UNSET",
+    "served_name": "model-name"
+  },
+  "integrity": {
+    "expected_snapshot_manifest": "manifests/{profile_id}/{revision}.sha256",
+    "enforce_on_wait": false
+  },
+  "vllm": {
+    "flags": [
+      "--dtype=float16",
+      "--tensor-parallel-size=1",
+      "--pipeline-parallel-size=1",
+      "--max-model-len=32768",
+      "--seed=424242",
+      "--max-num-seqs=1",
+      "--enforce-eager",
+      "--disable-log-requests"
+    ]
+  },
+  "smoke_test": {
+    "prompt": "Write exactly one sentence that says the server is healthy.",
+    "max_tokens": 32,
+    "temperature": 0.0,
+    "seed": 424242
+  },
+  "sampling_defaults": {
+    "target_tokens": 10000,
+    "chunk_max_tokens": 512,
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "seed": 424242,
+    "timeout_seconds": 600
+  }
+}

@@ -1,0 +1,21 @@
+.env
+__pycache__/
+*.pyc
+
+# Runtime model cache / weights (large, host-specific)
+state/hf/
+
+# Generated runtime compose + lock files (rebuildable)
+state/generated/
+
+# Generated sample outputs (large, non-source artifacts)
+artifacts/samples/
+
+# Ignore everything under artifacts except manifests
+artifacts/*
+!artifacts/manifests/
+!artifacts/manifests/**
+
+# Root-level reproducibility manifests are intended to be committed
+!manifests/
+!manifests/**
