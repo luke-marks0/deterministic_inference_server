@@ -35,6 +35,8 @@ DEFAULT_SEED = 42
 DEFAULT_TIMEOUT_SECONDS = 600
 DEFAULT_CONCURRENCY = 8
 DEFAULT_PROVIDER_LABEL = "fireworks"
+DEFAULT_REFERENCE_BUNDLE_REL = Path("artifacts/reference_prompts/reference_prompts.json")
+DEFAULT_REFERENCE_HASH_REL = Path("manifests/reference_prompts/reference_prompts.sha256")
 _TOKEN_ID_RE = re.compile(r"^token_id:(-?\d+)$")
 
 
@@ -51,14 +53,16 @@ def post_json(url: str, payload: dict, timeout: int) -> dict:
     return json.loads(raw.decode("utf-8"))
 
 
-def _default_reference_bundle_path(hf_model: str) -> Path:
-    safe_name = hf_model.replace("/", "_")
-    return Path(__file__).resolve().parent.parent / "artifacts" / "reference_prompts" / f"{safe_name}.json"
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
 
 
-def _default_reference_hash_path(hf_model: str) -> Path:
-    safe_name = hf_model.replace("/", "_")
-    return Path(__file__).resolve().parent.parent / "manifests" / "reference_prompts" / f"{safe_name}.sha256"
+def _default_reference_bundle_path() -> Path:
+    return _repo_root() / DEFAULT_REFERENCE_BUNDLE_REL
+
+
+def _default_reference_hash_path() -> Path:
+    return _repo_root() / DEFAULT_REFERENCE_HASH_REL
 
 
 def _sha256_file(path: Path) -> str:
@@ -92,7 +96,7 @@ def _verify_reference_bundle_hash(reference_bundle_path: Path, hash_path: Path) 
             f"  bundle:   {reference_bundle_path}\n"
             f"  expected: {expected}\n"
             f"  actual:   {actual}\n"
-            "Re-run scripts/bootstrap_reference_prompts.py to refresh prompts and lock."
+            "Re-run scripts/core/bootstrap_reference_prompts.py to refresh prompts and lock."
         )
 
 
@@ -239,13 +243,13 @@ def main() -> int:
         default="",
         help=(
             "Path to local prompt bundle JSON. "
-            "Default: artifacts/reference_prompts/<hf_model>.json"
+            "Default: artifacts/reference_prompts/reference_prompts.json"
         ),
     )
     parser.add_argument(
         "--reference-hash",
         default="",
-        help="Path to SHA-256 lock file for the prompt bundle. Default: manifests/reference_prompts/<hf_model>.sha256",
+        help="Path to SHA-256 lock file for the prompt bundle. Default: manifests/reference_prompts/reference_prompts.sha256",
     )
     parser.add_argument(
         "--skip-reference-hash-check",
@@ -300,18 +304,18 @@ def main() -> int:
     reference_bundle_path = (
         Path(args.reference_bundle).expanduser().resolve()
         if args.reference_bundle
-        else _default_reference_bundle_path(hf_model)
+        else _default_reference_bundle_path()
     )
     reference_hash_path = (
         Path(args.reference_hash).expanduser().resolve()
         if args.reference_hash
-        else _default_reference_hash_path(hf_model)
+        else _default_reference_hash_path()
     )
 
     if not reference_bundle_path.is_file():
         print(
             f"Reference bundle not found: {reference_bundle_path}\n"
-            "Run scripts/bootstrap_reference_prompts.py once, or pass --reference-bundle.",
+            "Run scripts/core/bootstrap_reference_prompts.py once, or pass --reference-bundle.",
             file=sys.stderr,
         )
         return 1
@@ -320,7 +324,7 @@ def main() -> int:
         if not reference_hash_path.is_file():
             print(
                 f"Reference hash file not found: {reference_hash_path}\n"
-                "Run scripts/bootstrap_reference_prompts.py once, or pass --reference-hash, "
+                "Run scripts/core/bootstrap_reference_prompts.py once, or pass --reference-hash, "
                 "or use --skip-reference-hash-check.",
                 file=sys.stderr,
             )
@@ -335,7 +339,8 @@ def main() -> int:
     if source_model_name != hf_model:
         print(
             f"Warning: --hf-model={hf_model} differs from bundle model={source_model_name}; "
-            f"using --hf-model for output metadata.",
+            "using --hf-model for output metadata. This is expected when using a shared "
+            "reference prompt bundle across models.",
             file=sys.stderr,
         )
 

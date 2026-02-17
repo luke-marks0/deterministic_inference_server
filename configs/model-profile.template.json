@@ -27,7 +27,9 @@
       "HF_HOME": "/data/hf",
       "CUDA_DEVICE_MAX_CONNECTIONS": "1",
       "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
-    }
+    },
+    "bootstrap_pip_packages": [
+    ]
   },
   "model": {
     "id": "org/model-name",

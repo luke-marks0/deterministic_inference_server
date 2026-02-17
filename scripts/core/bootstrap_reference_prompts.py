@@ -27,6 +27,8 @@ DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant."
 DEFAULT_DATASET = "allenai/WildChat-1M"
 DEFAULT_DATASET_SPLIT = "train"
 DEFAULT_SCAN_LIMIT = 10000
+DEFAULT_REFERENCE_BUNDLE_REL = Path("artifacts/reference_prompts/reference_prompts.json")
+DEFAULT_REFERENCE_HASH_REL = Path("manifests/reference_prompts/reference_prompts.sha256")
 
 
 def _enable_filelock_compat_shim() -> None:
@@ -86,16 +88,12 @@ def _enable_filelock_compat_shim() -> None:
         base_cls.__del__ = patched_del  # type: ignore[assignment]
 
 
-def _safe_model_name(hf_model: str) -> str:
-    return hf_model.replace("/", "_")
+def _default_output_path() -> Path:
+    return DEFAULT_REFERENCE_BUNDLE_REL
 
 
-def _default_output_path(hf_model: str) -> Path:
-    return Path("artifacts") / "reference_prompts" / f"{_safe_model_name(hf_model)}.json"
-
-
-def _default_hash_path(hf_model: str) -> Path:
-    return Path("manifests") / "reference_prompts" / f"{_safe_model_name(hf_model)}.sha256"
+def _default_hash_path() -> Path:
+    return DEFAULT_REFERENCE_HASH_REL
 
 
 def _write_sha256(path: Path, digest: str, data_path: Path) -> None:
@@ -197,12 +195,12 @@ def main() -> int:
     parser.add_argument(
         "--output",
         default="",
-        help="Output prompt bundle path. Default: artifacts/reference_prompts/<model>.json",
+        help="Output prompt bundle path. Default: artifacts/reference_prompts/reference_prompts.json",
     )
     parser.add_argument(
         "--hash-output",
         default="",
-        help="Hash lock file path. Default: manifests/reference_prompts/<model>.sha256",
+        help="Hash lock file path. Default: manifests/reference_prompts/reference_prompts.sha256",
     )
     parser.add_argument(
         "--force",
@@ -233,8 +231,8 @@ def main() -> int:
     if args.scan_limit <= 0:
         raise ValueError("--scan-limit must be > 0")
 
-    output_path = Path(args.output).expanduser() if args.output else _default_output_path(hf_model)
-    hash_path = Path(args.hash_output).expanduser() if args.hash_output else _default_hash_path(hf_model)
+    output_path = Path(args.output).expanduser() if args.output else _default_output_path()
+    hash_path = Path(args.hash_output).expanduser() if args.hash_output else _default_hash_path()
 
     if not output_path.is_absolute():
         output_path = Path.cwd() / output_path

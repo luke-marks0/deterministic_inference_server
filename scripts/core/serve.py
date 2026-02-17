@@ -31,6 +31,38 @@ def _run(cmd: list[str], env: dict[str, str] | None = None) -> None:
     subprocess.run(cmd, check=True, env=env)
 
 
+def _container_state(container_name: str) -> str | None:
+    result = subprocess.run(
+        ["docker", "inspect", "--format", "{{.State.Status}}", container_name],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    state = result.stdout.strip()
+    return state if state else None
+
+
+def _print_container_logs(container_name: str, *, tail: int = 120) -> None:
+    result = subprocess.run(
+        ["docker", "logs", "--tail", str(tail), container_name],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip() or "unknown docker error"
+        print(
+            f"Could not read logs for container '{container_name}': {detail}",
+            file=sys.stderr,
+        )
+        return
+    print(
+        f"Recent logs from container '{container_name}' (tail={tail}):",
+        file=sys.stderr,
+    )
+    print(result.stdout.rstrip(), file=sys.stderr)
+
+
 def _load_env_file(path: Path) -> dict[str, str]:
     env: dict[str, str] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -118,7 +150,7 @@ def _ensure_revision_locked(profile: ServeProfile) -> None:
     if profile.model.revision in UNSET_LOCK_VALUES:
         raise SystemExit(
             "Model revision is not pinned. Run:\n"
-            f"  ./scripts/lock_model_revision.sh --config {profile.config_path}"
+            f"  ./scripts/workflow.sh lock-model --config {profile.config_path}"
         )
 
 
@@ -300,7 +332,7 @@ def cmd_start(args: argparse.Namespace) -> int:
     print(f"Server started for profile '{profile.profile_id}'.")
     print(f"Compose file: {compose_path}")
     print(f"Resolved lock: {lock_path}")
-    print("Use ./scripts/wait_ready.sh --config <profile.json> to wait for readiness.")
+    print("Use ./scripts/workflow.sh wait --config <profile.json> to wait for readiness.")
     return 0
 
 
@@ -363,6 +395,15 @@ def cmd_wait(args: argparse.Namespace) -> int:
             if exc is not None:
                 last_status_line = f"{type(exc).__name__}: {exc}"
 
+        container_state = _container_state(profile.runtime.container_name)
+        if container_state is not None and container_state != "running":
+            print(
+                f"Container '{profile.runtime.container_name}' is '{container_state}' while waiting for readiness.",
+                file=sys.stderr,
+            )
+            _print_container_logs(profile.runtime.container_name)
+            return 1
+
         elapsed = int(time.time() - start_epoch)
         if elapsed >= next_status_at:
             status_suffix = f" last_error='{last_status_line}'" if last_status_line else ""
@@ -370,6 +411,7 @@ def cmd_wait(args: argparse.Namespace) -> int:
             next_status_at += 60
         if elapsed >= args.timeout_seconds:
             print(f"Timed out after {elapsed}s waiting for server readiness.", file=sys.stderr)
+            _print_container_logs(profile.runtime.container_name)
             return 1
         time.sleep(10)
 

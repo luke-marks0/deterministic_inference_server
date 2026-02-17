@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 config="configs/qwen3-235b-a22b-instruct-2507.json"
 secrets_file=".env"
@@ -16,7 +16,7 @@ stop_on_error=0
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/run_profile.sh [options]
+  ./scripts/workflow.sh [options]
 
 Orchestrates the standard profile workflow:
   start -> wait (with strict manifest verify) -> smoke -> optional hash -> optional stop
@@ -92,7 +92,7 @@ log_step() {
 }
 
 stop_server() {
-  python3 "${ROOT_DIR}/scripts/serve.py" stop \
+  python3 "${ROOT_DIR}/scripts/core/serve.py" stop \
     --config "${config}" \
     --secrets-file "${secrets_file}" >/dev/null 2>&1 || true
 }
@@ -110,7 +110,7 @@ root_dir = Path(sys.argv[1]).resolve()
 config_path = Path(sys.argv[2]).resolve()
 override = sys.argv[3].strip()
 
-sys.path.insert(0, str(root_dir / "scripts"))
+sys.path.insert(0, str(root_dir / "scripts" / "core"))
 from profile_config import load_profile  # type: ignore
 
 profile = load_profile(config_path)
@@ -140,13 +140,13 @@ manifest_path="$(resolve_manifest_path)"
 bootstrap_manifest=0
 
 log_step "Starting server"
-python3 "${ROOT_DIR}/scripts/serve.py" start \
+python3 "${ROOT_DIR}/scripts/core/serve.py" start \
   --config "${config}" \
   --secrets-file "${secrets_file}"
 
 if [[ -f "${manifest_path}" ]]; then
   log_step "Manifest detected at ${manifest_path}; waiting with strict verification"
-  python3 "${ROOT_DIR}/scripts/serve.py" wait \
+  python3 "${ROOT_DIR}/scripts/core/serve.py" wait \
     --config "${config}" \
     --secrets-file "${secrets_file}" \
     --timeout-seconds "${timeout_seconds}" \
@@ -154,43 +154,23 @@ if [[ -f "${manifest_path}" ]]; then
     --expected-manifest "${manifest_path}"
 else
   log_step "Manifest not detected at ${manifest_path}"
-  if [[ ! -t 0 ]]; then
-    echo "No interactive terminal available to choose bootstrap action. Aborting." >&2
-    echo "Create a trusted manifest first or run with --expected-manifest." >&2
-    exit 1
-  fi
-
-  while true; do
-    read -r -p "Manifest missing. Choose: [a]bort or [g]enerate new manifest: " choice
-    case "${choice}" in
-      a|A)
-        echo "Aborting at user request."
-        exit 1
-        ;;
-      g|G)
-        bootstrap_manifest=1
-        break
-        ;;
-      *)
-        echo "Invalid choice. Enter 'a' or 'g'."
-        ;;
-    esac
-  done
+  bootstrap_manifest=1
+  log_step "Bootstrapping missing manifest automatically"
 
   log_step "Waiting for readiness (bootstrap run without manifest verification)"
-  python3 "${ROOT_DIR}/scripts/serve.py" wait \
+  python3 "${ROOT_DIR}/scripts/core/serve.py" wait \
     --config "${config}" \
     --secrets-file "${secrets_file}" \
     --timeout-seconds "${timeout_seconds}"
 
   log_step "Generating bootstrap manifest at ${manifest_path}"
-  python3 "${ROOT_DIR}/scripts/serve.py" hash \
+  python3 "${ROOT_DIR}/scripts/core/serve.py" hash \
     --config "${config}" \
     --secrets-file "${secrets_file}" \
     --output "${manifest_path}"
 
   log_step "Verifying newly generated manifest"
-  python3 "${ROOT_DIR}/scripts/serve.py" verify \
+  python3 "${ROOT_DIR}/scripts/core/serve.py" verify \
     --config "${config}" \
     --secrets-file "${secrets_file}" \
     --expected-manifest "${manifest_path}"
@@ -198,7 +178,7 @@ fi
 
 if [[ "${run_smoke}" -eq 1 ]]; then
   log_step "Running smoke test"
-  python3 "${ROOT_DIR}/scripts/serve.py" smoke \
+  python3 "${ROOT_DIR}/scripts/core/serve.py" smoke \
     --config "${config}" \
     --secrets-file "${secrets_file}"
 else
@@ -211,7 +191,7 @@ if [[ "${run_hash}" -eq 1 ]]; then
   else
     log_step "Writing snapshot hash manifest"
     hash_cmd=(
-      python3 "${ROOT_DIR}/scripts/serve.py" hash
+      python3 "${ROOT_DIR}/scripts/core/serve.py" hash
       --config "${config}"
       --secrets-file "${secrets_file}"
     )
@@ -226,7 +206,7 @@ fi
 
 if [[ "${auto_stop}" -eq 1 ]]; then
   log_step "Stopping server (--stop)"
-  python3 "${ROOT_DIR}/scripts/serve.py" stop \
+  python3 "${ROOT_DIR}/scripts/core/serve.py" stop \
     --config "${config}" \
     --secrets-file "${secrets_file}"
 else

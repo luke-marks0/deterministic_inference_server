@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -51,6 +52,7 @@ class RuntimeConfig:
     required_secret_env: list[str]
     paths: RuntimePaths
     environment: dict[str, str]
+    bootstrap_pip_packages: list[str]
     memlock: int
     stack: int
 
@@ -125,6 +127,7 @@ class ServeProfile:
                     "artifacts": self.runtime.paths.artifacts,
                 },
                 "environment": self.runtime.environment,
+                "bootstrap_pip_packages": self.runtime.bootstrap_pip_packages,
                 "memlock": self.runtime.memlock,
                 "stack": self.runtime.stack,
             },
@@ -230,6 +233,12 @@ def load_profile(config_path: str | Path) -> ServeProfile:
             )
         runtime_environment[str(key)] = str(value)
 
+    bootstrap_pip_packages = runtime_table.get("bootstrap_pip_packages", [])
+    if not isinstance(bootstrap_pip_packages, list) or any(
+        not isinstance(item, str) or not item.strip() for item in bootstrap_pip_packages
+    ):
+        raise ValueError("runtime.bootstrap_pip_packages must be a list of non-empty strings.")
+
     runtime = RuntimeConfig(
         image=_expect_str(runtime_table, "image"),
         gpus=str(runtime_table.get("gpus", "all")),
@@ -246,6 +255,7 @@ def load_profile(config_path: str | Path) -> ServeProfile:
             artifacts=_expect_str(runtime_paths_table, "artifacts"),
         ),
         environment=runtime_environment,
+        bootstrap_pip_packages=[item.strip() for item in bootstrap_pip_packages],
         memlock=int(runtime_table.get("memlock", -1)),
         stack=int(runtime_table.get("stack", 67_108_864)),
     )
@@ -293,7 +303,8 @@ def load_profile(config_path: str | Path) -> ServeProfile:
         timeout_seconds=_expect_int(sample_table, "timeout_seconds"),
     )
 
-    root_dir = Path(__file__).resolve().parent.parent
+    # profile_config.py now lives in scripts/core/, so repo root is two levels up.
+    root_dir = Path(__file__).resolve().parents[2]
 
     return ServeProfile(
         root_dir=root_dir,
@@ -345,6 +356,24 @@ def render_compose_yaml(profile: ServeProfile) -> str:
     command_lines = [f"      - {_yaml_string(item)}" for item in command]
     environment_block = ["    environment:", *env_lines] if env_lines else ["    environment: {}"]
 
+    entrypoint_lines: list[str] = []
+    if profile.runtime.bootstrap_pip_packages:
+        pip_packages = " ".join(shlex.quote(pkg) for pkg in profile.runtime.bootstrap_pip_packages)
+        serve_cmd = " ".join(shlex.quote(arg) for arg in command)
+        bootstrap_command = (
+            f"python3 -m pip install --no-cache-dir {pip_packages} && "
+            f"python3 -m vllm.entrypoints.openai.api_server {serve_cmd}"
+        )
+        entrypoint_lines = [
+            "    entrypoint:",
+            f"      - {_yaml_string('/bin/bash')}",
+            f"      - {_yaml_string('-lc')}",
+            "    command:",
+            f"      - {_yaml_string(bootstrap_command)}",
+        ]
+    else:
+        entrypoint_lines = ["    command:", *command_lines]
+
     return "\n".join(
         [
             "services:",
@@ -363,8 +392,7 @@ def render_compose_yaml(profile: ServeProfile) -> str:
             f"      - {_yaml_string(f'{hf_cache_host}:/data/hf')}",
             f"      - {_yaml_string(f'{artifacts_host}:/artifacts')}",
             *environment_block,
-            "    command:",
-            *command_lines,
+            *entrypoint_lines,
             "",
         ]
     )
