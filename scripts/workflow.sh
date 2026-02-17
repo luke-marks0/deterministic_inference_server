@@ -17,6 +17,7 @@ Examples:
   ./scripts/workflow.sh wait --config configs/qwen3-235b-a22b-instruct-2507.json --verify-manifest
   ./scripts/workflow.sh smoke --config configs/qwen3-235b-a22b-instruct-2507.json
   ./scripts/workflow.sh verify --config configs/qwen3-235b-a22b-instruct-2507.json
+  ./scripts/workflow.sh eval-determinism --log-dir state/evals/logs
 EOF
 }
 
@@ -32,6 +33,10 @@ case "$1" in
   run)
     shift
     exec "${ROOT_DIR}/scripts/atomic/run_profile.sh" "$@"
+    ;;
+  eval-determinism)
+    shift
+    exec python3 "${ROOT_DIR}/scripts/core/eval_determinism.py" "$@"
     ;;
   start|stop|wait|smoke|hash|verify|lock-model|lock-image|render|show)
     subcommand="$1"

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "profile": {
+    "id": "base-profile",
+    "description": "Shared deterministic defaults for model profiles."
+  },
+  "runtime": {
+    "image": "vllm/vllm-openai:v0.8.5.post1",
+    "gpus": "all",
+    "ipc_mode": "host",
+    "restart": "unless-stopped",
+    "host_port": 8000,
+    "container_port": 8000,
+    "api_host": "0.0.0.0",
+    "container_name": "vllm_default",
+    "compose_project_name": "vllm_default",
+    "required_secret_env": [
+    ],
+    "memlock": -1,
+    "stack": 67108864,
+    "paths": {
+      "hf_cache": "state/hf",
+      "artifacts": "artifacts"
+    },
+    "environment": {
+      "HF_HOME": "/data/hf",
+      "CUDA_DEVICE_MAX_CONNECTIONS": "1",
+      "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+    },
+    "bootstrap_pip_packages": [
+    ]
+  },
+  "model": {
+    "id": "org/model-name",
+    "revision": "UNSET_RUN_LOCK_SCRIPT",
+    "locked_at_utc": "UNSET",
+    "served_name": "model-name"
+  },
+  "integrity": {
+    "expected_snapshot_manifest": "manifests/{profile_id}/{revision}.sha256",
+    "enforce_on_wait": false
+  },
+  "vllm": {
+    "flags": [
+      "--seed=424242",
+      "--max-num-seqs=1",
+      "--enforce-eager",
+      "--disable-log-requests"
+    ]
+  },
+  "smoke_test": {
+    "prompt": "Write exactly one sentence that says the server is healthy.",
+    "max_tokens": 32,
+    "temperature": 0.0,
+    "seed": 424242
+  },
+  "sampling_defaults": {
+    "target_tokens": 20000,
+    "chunk_max_tokens": 1024,
+    "temperature": 0.0,
+    "top_p": 0.95,
+    "seed": 424242,
+    "timeout_seconds": 600
+  }
+}

@@ -37,6 +37,7 @@ DEFAULT_CONCURRENCY = 8
 DEFAULT_PROVIDER_LABEL = "fireworks"
 DEFAULT_REFERENCE_BUNDLE_REL = Path("artifacts/reference_prompts/reference_prompts.json")
 DEFAULT_REFERENCE_HASH_REL = Path("manifests/reference_prompts/reference_prompts.sha256")
+DEFAULT_RUN_LOG_DIR_REL = Path("state/evals/logs")
 _TOKEN_ID_RE = re.compile(r"^token_id:(-?\d+)$")
 
 
@@ -63,6 +64,17 @@ def _default_reference_bundle_path() -> Path:
 
 def _default_reference_hash_path() -> Path:
     return _repo_root() / DEFAULT_REFERENCE_HASH_REL
+
+
+def _default_run_log_path(hf_model: str, timestamp: str, run_log_dir: str) -> Path:
+    safe_name = hf_model.replace("/", "_")
+    return (_repo_root() / Path(run_log_dir) / safe_name / f"run_{timestamp}.json").resolve()
+
+
+def _token_ids_hash(token_ids: list[int]) -> str:
+    hasher = hashlib.sha256()
+    hasher.update(json.dumps(token_ids, separators=(",", ":")).encode("utf-8"))
+    return hasher.hexdigest()
 
 
 def _sha256_file(path: Path) -> str:
@@ -265,6 +277,21 @@ def main() -> int:
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY)
     parser.add_argument("--timeout-seconds", type=int, default=None)
     parser.add_argument(
+        "--disable-run-log",
+        action="store_true",
+        help="Disable per-run determinism log writing.",
+    )
+    parser.add_argument(
+        "--run-log-dir",
+        default=str(DEFAULT_RUN_LOG_DIR_REL),
+        help="Directory used for default run log output.",
+    )
+    parser.add_argument(
+        "--run-log-output",
+        default="",
+        help="Explicit run log JSON path. Overrides --run-log-dir.",
+    )
+    parser.add_argument(
         "--provider-label",
         default=DEFAULT_PROVIDER_LABEL,
         help="Provider label written in output JSON (default: fireworks for compatibility).",
@@ -311,6 +338,7 @@ def main() -> int:
         if args.reference_hash
         else _default_reference_hash_path()
     )
+    reference_bundle_sha256 = _sha256_file(reference_bundle_path) if reference_bundle_path.is_file() else ""
 
     if not reference_bundle_path.is_file():
         print(
@@ -362,10 +390,22 @@ def main() -> int:
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
+    run_log_path: Path | None
+    if args.disable_run_log:
+        run_log_path = None
+    elif args.run_log_output:
+        run_log_path = Path(args.run_log_output).expanduser().resolve()
+    else:
+        run_log_path = _default_run_log_path(hf_model, timestamp, args.run_log_dir)
+    if run_log_path is not None:
+        run_log_path.parent.mkdir(parents=True, exist_ok=True)
+
     url = base_url.rstrip("/") + "/v1/completions"
     print(f"Sampling {len(conversations)} prompts from {url} using served model '{served_model}'")
     print(f"Reference prompt source: {reference_bundle_path}")
     print(f"Writing output to {output_path}")
+    if run_log_path is not None:
+        print(f"Writing run log to {run_log_path}")
 
     started_at = time.time()
     sequence_results: list[dict[str, list[int]] | None] = [None] * len(prompt_token_ids_list)
@@ -439,6 +479,53 @@ def main() -> int:
         json.dump(payload, out, indent=2)
 
     elapsed = time.time() - started_at
+
+    if run_log_path is not None:
+        records = []
+        for idx, seq in enumerate(sequences):
+            prompt_ids = seq["prompt_token_ids"]
+            output_ids = seq["output_token_ids"]
+            records.append(
+                {
+                    "prompt_index": idx,
+                    "prompt_token_ids": prompt_ids,
+                    "prompt_token_count": len(prompt_ids),
+                    "prompt_token_sha256": _token_ids_hash(prompt_ids),
+                    "output_token_ids": output_ids,
+                    "output_token_count": len(output_ids),
+                    "output_token_sha256": _token_ids_hash(output_ids),
+                }
+            )
+
+        run_log_payload = {
+            "schema_version": 1,
+            "run_type": "determinism_log",
+            "created_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            "profile_config": args.config or "",
+            "source_reference_bundle": str(reference_bundle_path),
+            "source_reference_bundle_sha256": reference_bundle_sha256,
+            "model": hf_model,
+            "served_model": served_model,
+            "base_url": base_url,
+            "parameters": {
+                "n_prompts": len(conversations),
+                "max_tokens": args.max_tokens,
+                "seed": args.seed,
+                "temperature": args.temperature,
+                "top_k": args.top_k,
+                "top_p": args.top_p,
+                "concurrency": args.concurrency,
+                "timeout_seconds": timeout_seconds,
+            },
+            "summary": {
+                "prompt_count": len(conversations),
+                "completion_tokens": total_completion_tokens,
+                "elapsed_s": elapsed,
+            },
+            "records": records,
+        }
+        run_log_path.write_text(json.dumps(run_log_payload, indent=2), encoding="utf-8")
+
     print(
         "Completed reference sampling: "
         f"prompts={len(conversations)} "

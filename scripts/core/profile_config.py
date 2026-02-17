@@ -191,16 +191,66 @@ def _slugify(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
 
+def _read_json_config(path: Path) -> dict[str, Any]:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            raw = json.load(handle)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Invalid JSON config at {path}: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise ValueError(f"Config must be a JSON object: {path}")
+    return raw
+
+
+def _merge_configs(base: Any, override: Any, path: str = "") -> Any:
+    if isinstance(base, dict) and isinstance(override, dict):
+        merged: dict[str, Any] = dict(base)
+        for key, value in override.items():
+            child_path = f"{path}.{key}" if path else key
+            if key in merged:
+                merged[key] = _merge_configs(merged[key], value, child_path)
+            else:
+                merged[key] = value
+        return merged
+
+    if isinstance(base, list) and isinstance(override, list):
+        # Keep common deterministic flags in a base config and append model-specific flags.
+        if path == "vllm.flags":
+            return [*base, *override]
+        return list(override)
+
+    return override
+
+
+def _resolve_config(path: Path, stack: list[Path] | None = None) -> dict[str, Any]:
+    if stack is None:
+        stack = []
+    if path in stack:
+        chain = " -> ".join(str(item) for item in [*stack, path])
+        raise ValueError(f"Detected config inheritance cycle: {chain}")
+
+    raw = _read_json_config(path)
+    base_ref = raw.pop("base_config", None)
+    if base_ref is None:
+        return raw
+
+    if not isinstance(base_ref, str) or not base_ref.strip():
+        raise ValueError(f"base_config must be a non-empty string at {path}")
+
+    base_path = (path.parent / base_ref).expanduser().resolve()
+    if not base_path.is_file():
+        raise FileNotFoundError(f"Base config file not found: {base_path}")
+
+    base_raw = _resolve_config(base_path, [*stack, path])
+    return _merge_configs(base_raw, raw)
+
+
 def load_profile(config_path: str | Path) -> ServeProfile:
     config = Path(config_path).expanduser().resolve()
     if not config.is_file():
         raise FileNotFoundError(f"Config file not found: {config}")
 
-    try:
-        with config.open("r", encoding="utf-8") as handle:
-            raw = json.load(handle)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Invalid JSON config at {config}: {exc}") from exc
+    raw = _resolve_config(config)
 
     schema_version = raw.get("schema_version")
     if schema_version != 1:
