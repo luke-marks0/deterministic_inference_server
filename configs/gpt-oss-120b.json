@@ -1,0 +1,30 @@
+{
+  "base_config": "standard-base.json",
+  "integrity": {
+    "expected_snapshot_manifest": "manifests/gpt-oss-120b/{revision}.sha256"
+  },
+  "model": {
+    "id": "openai/gpt-oss-120b",
+    "locked_at_utc": "2026-02-18T00:00:00Z",
+    "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f",
+    "served_name": "gpt-oss-120b"
+  },
+  "profile": {
+    "description": "Reference profile for gpt-oss-120b with deterministic-oriented vLLM flags.",
+    "id": "gpt-oss-120b-auto"
+  },
+  "runtime": {
+    "compose_project_name": "vllm_gpt_oss_120b",
+    "container_name": "vllm_gpt_oss_120b",
+    "host_port": 8003,
+    "image": "vllm/vllm-openai:v0.11.0"
+  },
+  "vllm": {
+    "flags": [
+      "--dtype=auto",
+      "--tensor-parallel-size=1",
+      "--pipeline-parallel-size=1",
+      "--max-model-len=32768"
+    ]
+  }
+}

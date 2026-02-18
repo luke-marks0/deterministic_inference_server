@@ -18,6 +18,11 @@ class ProfileDeterminismTests(unittest.TestCase):
         config_paths = [
             ROOT_DIR / "configs" / "qwen3-235b-a22b-instruct-2507.json",
             ROOT_DIR / "configs" / "kimi-k2-thinking.json",
+            ROOT_DIR / "configs" / "gpt-oss-20b.json",
+            ROOT_DIR / "configs" / "gpt-oss-120b.json",
+            ROOT_DIR / "configs" / "deepseek-v3-2.json",
+            ROOT_DIR / "configs" / "glm-5.json",
+            ROOT_DIR / "configs" / "kimi-k2-5.json",
         ]
 
         for config_path in config_paths:
@@ -29,6 +34,11 @@ class ProfileDeterminismTests(unittest.TestCase):
                 self.assertTrue(any(flag.startswith("--seed=") for flag in profile.vllm_flags))
                 self.assertIn("--max-num-seqs=1", profile.vllm_flags)
                 self.assertIn("--enforce-eager", profile.vllm_flags)
+                if config_path.name == "kimi-k2-thinking.json":
+                    self.assertIn("--dtype=float16", profile.vllm_flags)
+                    self.assertIn("--max-num-batched-tokens=768", profile.vllm_flags)
+                    self.assertIn("--disable-custom-all-reduce", profile.vllm_flags)
+                    self.assertIn("--no-enable-prefix-caching", profile.vllm_flags)
 
     def test_render_compose_yaml_is_stable(self) -> None:
         profile = profile_config.load_profile(ROOT_DIR / "configs" / "kimi-k2-thinking.json")

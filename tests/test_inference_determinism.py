@@ -2,10 +2,12 @@ import hashlib
 import io
 import json
 import sys
+import tempfile
 import unittest
 from argparse import Namespace
 from contextlib import redirect_stdout
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 
@@ -77,6 +79,111 @@ class InferenceDeterminismTests(unittest.TestCase):
             output_b, _ = sample_session._generate_one(seed=222, **base_args)
 
         self.assertNotEqual(output_a, output_b)
+
+    def test_generate_one_does_not_send_top_logprobs(self) -> None:
+        captured_payloads: list[dict[str, object]] = []
+
+        def fake_post_json(_: str, payload: dict[str, object], __: int) -> dict[str, object]:
+            captured_payloads.append(payload)
+            return _fake_completion_response(payload)
+
+        with mock.patch.object(sample_session, "post_json", side_effect=fake_post_json):
+            sample_session._generate_one(
+                url="http://localhost:8000/v1/completions",
+                timeout_seconds=30,
+                model="qwen3-235b-a22b-instruct-2507",
+                prompt_token_ids=[101, 102, 103],
+                max_tokens=8,
+                temperature=0.0,
+                top_k=50,
+                top_p=0.95,
+                seed=424242,
+            )
+
+        self.assertEqual(len(captured_payloads), 1)
+        self.assertNotIn("top_logprobs", captured_payloads[0])
+
+    def test_sample_session_main_uses_profile_sampling_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            reference_bundle_path = tmp / "reference.json"
+            reference_hash_path = tmp / "reference.sha256"
+            output_path = tmp / "output.json"
+            reference_bundle_path.write_text("{}", encoding="utf-8")
+            reference_hash_path.write_text(f"{'0' * 64}\n", encoding="utf-8")
+
+            captured_kwargs: list[dict[str, object]] = []
+
+            fake_profile = SimpleNamespace(
+                runtime=SimpleNamespace(host_port=8123),
+                model=SimpleNamespace(
+                    served_name="kimi-k2-thinking",
+                    model_id="moonshotai/Kimi-K2-Thinking",
+                ),
+                sample_defaults=SimpleNamespace(
+                    temperature=0.0,
+                    top_p=0.95,
+                    seed=424242,
+                    timeout_seconds=777,
+                ),
+            )
+
+            def fake_generate_one(**kwargs: object) -> tuple[list[int], int]:
+                captured_kwargs.append(dict(kwargs))
+                return [11, 22, 33], 3
+
+            argv = [
+                "sample_session.py",
+                "--config",
+                "configs/kimi-k2-thinking.json",
+                "--reference-bundle",
+                str(reference_bundle_path),
+                "--reference-hash",
+                str(reference_hash_path),
+                "--n-prompts",
+                "1",
+                "--output",
+                str(output_path),
+                "--disable-run-log",
+            ]
+
+            with mock.patch.object(sample_session, "load_profile", return_value=fake_profile):
+                with mock.patch.object(sample_session, "_verify_reference_bundle_hash"):
+                    with mock.patch.object(
+                        sample_session,
+                        "_load_reference_inputs",
+                        return_value=(
+                            "moonshotai/Kimi-K2-Thinking",
+                            [[{"role": "user", "content": "test"}]],
+                            [[1, 2, 3]],
+                        ),
+                    ):
+                        with mock.patch.object(sample_session, "_sha256_file", return_value="f" * 64):
+                            with mock.patch.object(
+                                sample_session,
+                                "_generate_one",
+                                side_effect=fake_generate_one,
+                            ):
+                                with mock.patch.object(sys, "argv", argv):
+                                    with redirect_stdout(io.StringIO()):
+                                        rc = sample_session.main()
+
+            self.assertEqual(rc, 0)
+            self.assertEqual(len(captured_kwargs), 1)
+            kwargs = captured_kwargs[0]
+            self.assertEqual(kwargs["url"], "http://127.0.0.1:8123/v1/completions")
+            self.assertEqual(kwargs["model"], "kimi-k2-thinking")
+            self.assertEqual(kwargs["temperature"], 0.0)
+            self.assertEqual(kwargs["top_k"], 50)
+            self.assertEqual(kwargs["top_p"], 0.95)
+            self.assertEqual(kwargs["seed"], 424242)
+            self.assertEqual(kwargs["timeout_seconds"], 777)
+
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["parameters"]["temperature"], 0.0)
+            self.assertEqual(payload["parameters"]["top_k"], 50)
+            self.assertEqual(payload["parameters"]["top_p"], 0.95)
+            self.assertEqual(payload["parameters"]["seed"], 424242)
 
     def test_smoke_request_payload_is_repeatable(self) -> None:
         config_path = ROOT_DIR / "configs" / "qwen3-235b-a22b-instruct-2507.json"

@@ -1,0 +1,30 @@
+{
+  "base_config": "standard-base.json",
+  "integrity": {
+    "expected_snapshot_manifest": "manifests/deepseek-v3-2/{revision}.sha256"
+  },
+  "model": {
+    "id": "deepseek-ai/DeepSeek-V3.2",
+    "locked_at_utc": "2026-02-18T00:00:00Z",
+    "revision": "a7e62ac04f4f0438f1be3f64d6f44efefe7b9e24",
+    "served_name": "deepseek-v3-2"
+  },
+  "profile": {
+    "description": "Reference profile for DeepSeek-V3.2 with deterministic-oriented vLLM flags.",
+    "id": "deepseek-v3-2-tp8"
+  },
+  "runtime": {
+    "compose_project_name": "vllm_deepseek_v3_2",
+    "container_name": "vllm_deepseek_v3_2",
+    "host_port": 8004,
+    "image": "vllm/vllm-openai:v0.14.1"
+  },
+  "vllm": {
+    "flags": [
+      "--dtype=auto",
+      "--tensor-parallel-size=8",
+      "--pipeline-parallel-size=1",
+      "--max-model-len=32768"
+    ]
+  }
+}

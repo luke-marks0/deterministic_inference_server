@@ -33,7 +33,7 @@ DEFAULT_TOP_K = 50
 DEFAULT_TOP_P = 0.95
 DEFAULT_SEED = 42
 DEFAULT_TIMEOUT_SECONDS = 600
-DEFAULT_CONCURRENCY = 8
+DEFAULT_CONCURRENCY = 1
 DEFAULT_PROVIDER_LABEL = "fireworks"
 DEFAULT_REFERENCE_BUNDLE_REL = Path("artifacts/reference_prompts/reference_prompts.json")
 DEFAULT_REFERENCE_HASH_REL = Path("manifests/reference_prompts/reference_prompts.sha256")
@@ -219,7 +219,6 @@ def _generate_one(
         "seed": seed,
         "echo": True,
         "logprobs": 1,
-        "top_logprobs": 1,
         "return_tokens_as_token_ids": True,
     }
     response = post_json(url, payload, timeout_seconds)
@@ -270,10 +269,10 @@ def main() -> int:
     )
     parser.add_argument("--n-prompts", type=int, default=DEFAULT_N_PROMPTS)
     parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
-    parser.add_argument("--temperature", type=float, default=DEFAULT_TEMPERATURE)
+    parser.add_argument("--temperature", type=float, default=None)
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
-    parser.add_argument("--top-p", type=float, default=DEFAULT_TOP_P)
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
+    parser.add_argument("--top-p", type=float, default=None)
+    parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY)
     parser.add_argument("--timeout-seconds", type=int, default=None)
     parser.add_argument(
@@ -308,16 +307,25 @@ def main() -> int:
         default_base_url = f"http://127.0.0.1:{profile.runtime.host_port}"
         default_model = profile.model.served_name
         default_hf_model = profile.model.model_id
+        default_temperature = profile.sample_defaults.temperature
+        default_top_p = profile.sample_defaults.top_p
+        default_seed = profile.sample_defaults.seed
         default_timeout_seconds = profile.sample_defaults.timeout_seconds
     else:
         default_base_url = DEFAULT_BASE_URL
         default_model = DEFAULT_SERVED_MODEL
         default_hf_model = DEFAULT_HF_MODEL
+        default_temperature = DEFAULT_TEMPERATURE
+        default_top_p = DEFAULT_TOP_P
+        default_seed = DEFAULT_SEED
         default_timeout_seconds = DEFAULT_TIMEOUT_SECONDS
 
     base_url = args.base_url or default_base_url
     served_model = args.model or default_model
     hf_model = args.hf_model or default_hf_model
+    temperature = args.temperature if args.temperature is not None else default_temperature
+    top_p = args.top_p if args.top_p is not None else default_top_p
+    seed = args.seed if args.seed is not None else default_seed
     timeout_seconds = args.timeout_seconds if args.timeout_seconds is not None else default_timeout_seconds
     if timeout_seconds <= 0:
         raise ValueError("--timeout-seconds must be > 0")
@@ -325,8 +333,20 @@ def main() -> int:
         raise ValueError("--n-prompts must be > 0")
     if args.max_tokens <= 0:
         raise ValueError("--max-tokens must be > 0")
+    if temperature < 0.0:
+        raise ValueError("--temperature must be >= 0")
+    if args.top_k <= 0:
+        raise ValueError("--top-k must be > 0")
+    if top_p <= 0.0 or top_p > 1.0:
+        raise ValueError("--top-p must satisfy 0 < top-p <= 1")
     if args.concurrency <= 0:
         raise ValueError("--concurrency must be > 0")
+    if args.concurrency > 1:
+        print(
+            "Warning: --concurrency > 1 can reduce reproducibility because requests "
+            "may contend in the scheduler. Use --concurrency 1 for max determinism.",
+            file=sys.stderr,
+        )
 
     reference_bundle_path = (
         Path(args.reference_bundle).expanduser().resolve()
@@ -420,10 +440,10 @@ def main() -> int:
                 model=served_model,
                 prompt_token_ids=prompt_ids,
                 max_tokens=args.max_tokens,
-                temperature=args.temperature,
+                temperature=temperature,
                 top_k=args.top_k,
-                top_p=args.top_p,
-                seed=args.seed,
+                top_p=top_p,
+                seed=seed,
             ): idx
             for idx, prompt_ids in enumerate(prompt_token_ids_list)
         }
@@ -466,10 +486,10 @@ def main() -> int:
         "parameters": {
             "n_prompts": len(conversations),
             "max_tokens": args.max_tokens,
-            "seed": args.seed,
-            "temperature": args.temperature,
+            "seed": seed,
+            "temperature": temperature,
             "top_k": args.top_k,
-            "top_p": args.top_p,
+            "top_p": top_p,
         },
         "conversations": conversations,
         "sequences": sequences,
@@ -510,10 +530,10 @@ def main() -> int:
             "parameters": {
                 "n_prompts": len(conversations),
                 "max_tokens": args.max_tokens,
-                "seed": args.seed,
-                "temperature": args.temperature,
+                "seed": seed,
+                "temperature": temperature,
                 "top_k": args.top_k,
-                "top_p": args.top_p,
+                "top_p": top_p,
                 "concurrency": args.concurrency,
                 "timeout_seconds": timeout_seconds,
             },
