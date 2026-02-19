@@ -160,23 +160,28 @@ class InferenceDeterminismTests(unittest.TestCase):
                         return_value=(
                             "moonshotai/Kimi-K2-Thinking",
                             [[{"role": "user", "content": "test"}]],
-                            [[1, 2, 3]],
+                            False,
                         ),
                     ):
                         with mock.patch.object(sample_session, "_sha256_file", return_value="f" * 64):
                             with mock.patch.object(
                                 sample_session,
-                                "_tokenize_conversations_for_model",
-                                return_value=([[1, 2, 3]], "moonshotai/Kimi-K2-Thinking@deadbeef"),
+                                "_verify_tokenizer_files_against_manifest",
+                                return_value=(tmp / "snapshot", tmp / "manifest.sha256", ["tokenizer_config.json"]),
                             ):
                                 with mock.patch.object(
                                     sample_session,
-                                    "_generate_one",
-                                    side_effect=fake_generate_one,
+                                    "_tokenize_conversations_for_model",
+                                    return_value=([[1, 2, 3]], "moonshotai/Kimi-K2-Thinking@deadbeef"),
                                 ):
-                                    with mock.patch.object(sys, "argv", argv):
-                                        with redirect_stdout(io.StringIO()):
-                                            rc = sample_session.main()
+                                    with mock.patch.object(
+                                        sample_session,
+                                        "_generate_one",
+                                        side_effect=fake_generate_one,
+                                    ):
+                                        with mock.patch.object(sys, "argv", argv):
+                                            with redirect_stdout(io.StringIO()):
+                                                rc = sample_session.main()
 
             self.assertEqual(rc, 0)
             self.assertEqual(len(captured_kwargs), 1)
@@ -252,23 +257,28 @@ class InferenceDeterminismTests(unittest.TestCase):
                         return_value=(
                             "Qwen/Qwen3-235B-A22B-Instruct-2507",
                             [[{"role": "user", "content": "test"}]],
-                            [[151644, 8948, 198, 2610]],
+                            True,
                         ),
                     ):
                         with mock.patch.object(sample_session, "_sha256_file", return_value="f" * 64):
                             with mock.patch.object(
                                 sample_session,
-                                "_tokenize_conversations_for_model",
-                                return_value=([[1, 2, 3, 4]], "openai/gpt-oss-20b@6cee5e8"),
+                                "_verify_tokenizer_files_against_manifest",
+                                return_value=(tmp / "snapshot", tmp / "manifest.sha256", ["tokenizer_config.json"]),
                             ):
                                 with mock.patch.object(
                                     sample_session,
-                                    "_generate_one",
-                                    side_effect=fake_generate_one,
+                                    "_tokenize_conversations_for_model",
+                                    return_value=([[1, 2, 3, 4]], "openai/gpt-oss-20b@6cee5e8"),
                                 ):
-                                    with mock.patch.object(sys, "argv", argv):
-                                        with redirect_stdout(io.StringIO()):
-                                            rc = sample_session.main()
+                                    with mock.patch.object(
+                                        sample_session,
+                                        "_generate_one",
+                                        side_effect=fake_generate_one,
+                                    ):
+                                        with mock.patch.object(sys, "argv", argv):
+                                            with redirect_stdout(io.StringIO()):
+                                                rc = sample_session.main()
 
             self.assertEqual(rc, 0)
             self.assertEqual(len(captured_kwargs), 1)

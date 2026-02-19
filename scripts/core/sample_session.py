@@ -38,6 +38,19 @@ DEFAULT_PROVIDER_LABEL = "fireworks"
 DEFAULT_REFERENCE_BUNDLE_REL = Path("artifacts/reference_prompts/reference_prompts.json")
 DEFAULT_REFERENCE_HASH_REL = Path("manifests/reference_prompts/reference_prompts.sha256")
 DEFAULT_RUN_LOG_DIR_REL = Path("state/evals/logs")
+DEFAULT_SNAPSHOT_MANIFEST_TEMPLATE = "manifests/{profile_id}/{revision}.sha256"
+TOKENIZER_FILE_BASENAMES = {
+    "added_tokens.json",
+    "chat_template.jinja",
+    "merges.txt",
+    "special_tokens_map.json",
+    "spiece.model",
+    "tokenizer.json",
+    "tokenizer.model",
+    "tokenizer_config.json",
+    "vocab.json",
+    "vocab.txt",
+}
 _TOKEN_ID_RE = re.compile(r"^token_id:(-?\d+)$")
 
 
@@ -154,7 +167,7 @@ def _extract_generated_token_ids(response: dict, prompt_len: int) -> list[int]:
     )
 
 
-def _load_reference_inputs(path: Path) -> tuple[str, list[list[dict[str, str]]], list[list[int]]]:
+def _load_reference_inputs(path: Path) -> tuple[str, list[list[dict[str, str]]], bool]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
         raise ValueError(f"Reference bundle must be a JSON object: {path}")
@@ -166,35 +179,174 @@ def _load_reference_inputs(path: Path) -> tuple[str, list[list[dict[str, str]]],
     conversations = payload.get("conversations")
     if not isinstance(conversations, list):
         raise ValueError(f"Missing or invalid 'conversations' in reference bundle: {path}")
+    if any(not isinstance(conv, list) for conv in conversations):
+        raise ValueError(f"Invalid conversation entry in reference bundle: {path}")
 
-    prompt_token_ids_list: list[list[int]] = []
+    has_pretokenized_prompts = False
     if isinstance(payload.get("prompt_token_ids"), list):
-        for prompt_ids in payload["prompt_token_ids"]:
-            if not isinstance(prompt_ids, list) or any(not isinstance(tok, int) for tok in prompt_ids):
-                raise ValueError(f"Invalid prompt_token_ids entry in reference bundle: {path}")
-            prompt_token_ids_list.append(prompt_ids)
+        has_pretokenized_prompts = True
     else:
         sequences = payload.get("sequences")
-        if not isinstance(sequences, list):
-            raise ValueError(
-                f"Missing prompt IDs in reference bundle: expected either "
-                f"'prompt_token_ids' or 'sequences' at {path}"
+        if isinstance(sequences, list):
+            has_pretokenized_prompts = any(
+                isinstance(seq, dict) and isinstance(seq.get("prompt_token_ids"), list)
+                for seq in sequences
             )
-        for seq in sequences:
-            if not isinstance(seq, dict):
-                raise ValueError(f"Invalid sequence entry in reference bundle: {path}")
-            prompt_token_ids = seq.get("prompt_token_ids")
-            if not isinstance(prompt_token_ids, list) or any(not isinstance(tok, int) for tok in prompt_token_ids):
-                raise ValueError(f"Invalid prompt_token_ids in reference bundle: {path}")
-            prompt_token_ids_list.append(prompt_token_ids)
 
-    if len(conversations) != len(prompt_token_ids_list):
+    return model_name, conversations, has_pretokenized_prompts
+
+
+def _resolve_expected_manifest_path(profile) -> Path:
+    template = profile.integrity.expected_snapshot_manifest.strip() or DEFAULT_SNAPSHOT_MANIFEST_TEMPLATE
+    try:
+        rendered = template.format(
+            profile_id=profile.profile_id,
+            revision=profile.model.revision,
+            model_id=profile.model.model_id,
+            model_id_slug=profile.model.model_id.replace("/", "--"),
+        )
+    except KeyError as exc:
         raise ValueError(
-            f"Reference bundle has mismatched lengths: "
-            f"conversations={len(conversations)} sequences={len(prompt_token_ids_list)}"
+            f"Unknown placeholder '{exc.args[0]}' in manifest path template: {template}"
+        ) from exc
+
+    path = Path(rendered).expanduser()
+    if not path.is_absolute():
+        path = profile.root_dir / path
+    return path
+
+
+def _resolve_exact_snapshot_dir(
+    *,
+    root_dir: Path,
+    hf_model: str,
+    hf_cache_rel: str,
+    revision: str | None,
+) -> Path:
+    if not revision or revision in UNSET_LOCK_VALUES:
+        raise ValueError(
+            "Model revision is not pinned; cannot verify tokenizer snapshot. "
+            "Run ./scripts/workflow.sh lock-model --config <config> first."
         )
 
-    return model_name, conversations, prompt_token_ids_list
+    cache_root = Path(hf_cache_rel)
+    if not cache_root.is_absolute():
+        cache_root = root_dir / cache_root
+
+    snapshot_dir = (
+        cache_root
+        / "hub"
+        / f"models--{hf_model.replace('/', '--')}"
+        / "snapshots"
+        / revision
+    )
+    if not snapshot_dir.is_dir():
+        raise ValueError(
+            "Pinned snapshot directory not found for tokenizer verification:\n"
+            f"  {snapshot_dir}\n"
+            "Start the profile once and wait for model download completion first."
+        )
+    return snapshot_dir
+
+
+def _load_manifest_entries(path: Path) -> dict[str, str]:
+    if not path.is_file():
+        raise ValueError(f"Pinned snapshot manifest not found: {path}")
+
+    entries: dict[str, str] = {}
+    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        parts = stripped.split("  ", 1)
+        if len(parts) != 2:
+            raise ValueError(
+                f"Invalid manifest format in {path}:{line_no}. "
+                "Expected '<sha256>  ./relative/path'."
+            )
+
+        digest = parts[0].strip().lower()
+        rel_path = parts[1].strip()
+        if not re.fullmatch(r"[a-f0-9]{64}", digest):
+            raise ValueError(f"Invalid digest in manifest {path}:{line_no}: {parts[0].strip()}")
+        if not rel_path:
+            raise ValueError(f"Invalid empty path in manifest {path}:{line_no}")
+        if not rel_path.startswith("./"):
+            rel_path = f"./{rel_path.lstrip('/')}"
+        entries[rel_path] = digest
+
+    if not entries:
+        raise ValueError(
+            "Pinned snapshot manifest is empty; cannot verify tokenizer pinning:\n"
+            f"  {path}\n"
+            "Regenerate it with ./scripts/workflow.sh hash --config <config> --output <manifest>."
+        )
+    return entries
+
+
+def _is_tokenizer_related_path(rel_path: str) -> bool:
+    name = Path(rel_path).name.lower()
+    if name in TOKENIZER_FILE_BASENAMES:
+        return True
+    if "tokenizer" in name:
+        return True
+    if "chat_template" in name:
+        return True
+    return False
+
+
+def _verify_tokenizer_files_against_manifest(
+    *,
+    profile,
+    hf_model: str,
+    model_revision: str | None,
+) -> tuple[Path, Path, list[str]]:
+    snapshot_dir = _resolve_exact_snapshot_dir(
+        root_dir=profile.root_dir,
+        hf_model=hf_model,
+        hf_cache_rel=profile.runtime.paths.hf_cache,
+        revision=model_revision,
+    )
+    manifest_path = _resolve_expected_manifest_path(profile)
+    manifest_entries = _load_manifest_entries(manifest_path)
+
+    tokenizer_rel_paths = sorted(
+        rel_path
+        for rel_path in (
+            path.relative_to(snapshot_dir).as_posix()
+            for path in snapshot_dir.rglob("*")
+            if path.is_file()
+        )
+        if _is_tokenizer_related_path(rel_path)
+    )
+    if not tokenizer_rel_paths:
+        raise ValueError(
+            "No tokenizer files found in pinned snapshot directory:\n"
+            f"  {snapshot_dir}"
+        )
+
+    for rel_path in tokenizer_rel_paths:
+        manifest_key = f"./{rel_path}"
+        if manifest_key not in manifest_entries:
+            raise ValueError(
+                "Tokenizer file missing from pinned snapshot manifest:\n"
+                f"  manifest: {manifest_path}\n"
+                f"  missing:  {manifest_key}"
+            )
+
+        actual = _sha256_file(snapshot_dir / rel_path).lower()
+        expected = manifest_entries[manifest_key]
+        if actual != expected:
+            raise ValueError(
+                "Tokenizer file digest mismatch against pinned manifest:\n"
+                f"  manifest: {manifest_path}\n"
+                f"  file:     {manifest_key}\n"
+                f"  expected: {expected}\n"
+                f"  actual:   {actual}"
+            )
+
+    return snapshot_dir, manifest_path, tokenizer_rel_paths
 
 
 def _resolve_local_snapshot(
@@ -236,6 +388,7 @@ def _load_target_tokenizer(
     model_revision: str | None,
     root_dir: Path,
     hf_cache_rel: str,
+    snapshot_dir: Path | None = None,
 ):
     try:
         from transformers import AutoTokenizer
@@ -245,12 +398,14 @@ def _load_target_tokenizer(
             "(e.g. pip install -r requirements.txt)."
         ) from exc
 
-    local_snapshot = _resolve_local_snapshot(
-        root_dir=root_dir,
-        hf_model=hf_model,
-        hf_cache_rel=hf_cache_rel,
-        revision=model_revision,
-    )
+    local_snapshot = snapshot_dir
+    if local_snapshot is None:
+        local_snapshot = _resolve_local_snapshot(
+            root_dir=root_dir,
+            hf_model=hf_model,
+            hf_cache_rel=hf_cache_rel,
+            revision=model_revision,
+        )
     if local_snapshot is not None:
         try:
             tokenizer = AutoTokenizer.from_pretrained(
@@ -260,6 +415,12 @@ def _load_target_tokenizer(
             )
             return tokenizer, str(local_snapshot)
         except Exception as exc:
+            if snapshot_dir is not None:
+                raise RuntimeError(
+                    "Failed to load tokenizer from verified pinned snapshot:\n"
+                    f"  {snapshot_dir}\n"
+                    f"error: {exc}"
+                ) from exc
             print(
                 "Warning: failed to load tokenizer from local snapshot "
                 f"{local_snapshot}: {exc}. Falling back to Hugging Face source.",
@@ -285,12 +446,14 @@ def _tokenize_conversations_for_model(
     model_revision: str | None,
     root_dir: Path,
     hf_cache_rel: str,
+    snapshot_dir: Path | None = None,
 ) -> tuple[list[list[int]], str]:
     tokenizer, tokenizer_source = _load_target_tokenizer(
         hf_model=hf_model,
         model_revision=model_revision,
         root_dir=root_dir,
         hf_cache_rel=hf_cache_rel,
+        snapshot_dir=snapshot_dir,
     )
 
     prompt_token_ids_list: list[list[int]] = []
@@ -409,6 +572,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    profile = None
     if args.config:
         profile = load_profile(args.config)
         default_base_url = f"http://127.0.0.1:{profile.runtime.host_port}"
@@ -497,15 +661,21 @@ def main() -> int:
             print(str(exc), file=sys.stderr)
             return 1
 
-    source_model_name, conversations, reference_prompt_token_ids = _load_reference_inputs(reference_bundle_path)
+    source_model_name, conversations, has_pretokenized_prompts = _load_reference_inputs(reference_bundle_path)
     if source_model_name != hf_model:
         print(
             f"Warning: --hf-model={hf_model} differs from bundle model={source_model_name}; "
             "retokenizing prompts with --hf-model tokenizer before sampling.",
             file=sys.stderr,
         )
+    if has_pretokenized_prompts:
+        print(
+            "Info: ignoring pretokenized prompt IDs from reference bundle; "
+            "using conversation messages only.",
+            file=sys.stderr,
+        )
 
-    total_available = min(len(conversations), len(reference_prompt_token_ids))
+    total_available = len(conversations)
     if args.n_prompts > total_available:
         print(
             f"--n-prompts={args.n_prompts} exceeds available prompts in bundle ({total_available}).",
@@ -514,6 +684,40 @@ def main() -> int:
         return 1
 
     conversations = conversations[: args.n_prompts]
+    tokenizer_snapshot_dir: Path | None = None
+    if profile is not None:
+        if hf_model != profile.model.model_id:
+            print(
+                "When --config is provided, --hf-model must match config.model.id "
+                "so tokenizer pinning can be verified against the snapshot manifest.\n"
+                f"  config model: {profile.model.model_id}\n"
+                f"  --hf-model:   {hf_model}",
+                file=sys.stderr,
+            )
+            return 1
+
+        try:
+            tokenizer_snapshot_dir, tokenizer_manifest_path, tokenizer_manifest_files = (
+                _verify_tokenizer_files_against_manifest(
+                    profile=profile,
+                    hf_model=hf_model,
+                    model_revision=model_revision,
+                )
+            )
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+
+        print(
+            "Pinned tokenizer verification passed: "
+            f"manifest={tokenizer_manifest_path} files={len(tokenizer_manifest_files)}"
+        )
+    else:
+        print(
+            "Warning: running without --config; tokenizer pinning cannot be verified against a snapshot manifest.",
+            file=sys.stderr,
+        )
+
     try:
         prompt_token_ids_list, tokenizer_source = _tokenize_conversations_for_model(
             conversations,
@@ -521,6 +725,7 @@ def main() -> int:
             model_revision=model_revision,
             root_dir=profile_root_dir,
             hf_cache_rel=default_hf_cache_rel,
+            snapshot_dir=tokenizer_snapshot_dir,
         )
     except Exception as exc:
         print(f"Failed to tokenize conversations for {hf_model}: {exc}", file=sys.stderr)
@@ -616,6 +821,7 @@ def main() -> int:
             "top_p": top_p,
             "tokenizer_source": tokenizer_source,
             "tokenizer_revision": model_revision if model_revision and model_revision not in UNSET_LOCK_VALUES else "",
+            "reference_bundle_has_pretokenized_prompts": has_pretokenized_prompts,
         },
         "conversations": conversations,
         "sequences": sequences,
@@ -651,6 +857,7 @@ def main() -> int:
             "source_reference_bundle": str(reference_bundle_path),
             "source_reference_bundle_sha256": reference_bundle_sha256,
             "source_reference_model": source_model_name,
+            "source_reference_has_pretokenized_prompts": has_pretokenized_prompts,
             "tokenizer_source": tokenizer_source,
             "model": hf_model,
             "served_model": served_model,

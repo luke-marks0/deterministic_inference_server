@@ -322,7 +322,6 @@ def main() -> int:
         raise SystemExit(f"Failed to load dataset {args.dataset}: {exc}") from exc
 
     conversations: list[list[dict[str, str]]] = []
-    prompt_token_ids: list[list[int]] = []
     unique_prompts: set[tuple[int, ...]] = set()
 
     for sample in islice(ds, args.scan_limit):
@@ -383,11 +382,6 @@ def main() -> int:
     if system_prompt:
         conversations = [[{"role": "system", "content": system_prompt}] + conv for conv in conversations]
 
-    for conv in conversations:
-        rendered = tokenizer.apply_chat_template(conv, tokenize=False, add_generation_prompt=True)
-        token_ids = tokenizer.encode(rendered, add_special_tokens=False)
-        prompt_token_ids.append([int(tok) for tok in token_ids])
-
     prompt_bundle = {
         "model": hf_model,
         "parameters": {
@@ -403,7 +397,6 @@ def main() -> int:
             "tokenizer_source": tokenizer_source,
         },
         "conversations": conversations,
-        "prompt_token_ids": prompt_token_ids,
         "source": {
             "downloaded_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "method": "huggingface_dataset_streaming",
