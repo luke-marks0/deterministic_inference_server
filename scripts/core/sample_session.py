@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
-from profile_config import load_profile
+from profile_config import UNSET_LOCK_VALUES, load_profile
 
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
@@ -197,6 +197,113 @@ def _load_reference_inputs(path: Path) -> tuple[str, list[list[dict[str, str]]],
     return model_name, conversations, prompt_token_ids_list
 
 
+def _resolve_local_snapshot(
+    *,
+    root_dir: Path,
+    hf_model: str,
+    hf_cache_rel: str,
+    revision: str | None,
+) -> Path | None:
+    cache_root = Path(hf_cache_rel)
+    if not cache_root.is_absolute():
+        cache_root = root_dir / cache_root
+
+    model_cache_dir = (
+        cache_root
+        / "hub"
+        / f"models--{hf_model.replace('/', '--')}"
+        / "snapshots"
+    )
+    if not model_cache_dir.is_dir():
+        return None
+
+    if revision and revision not in UNSET_LOCK_VALUES:
+        candidate = model_cache_dir / revision
+        if candidate.is_dir():
+            return candidate
+
+    snapshots = sorted(
+        (p for p in model_cache_dir.iterdir() if p.is_dir()),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    return snapshots[0] if snapshots else None
+
+
+def _load_target_tokenizer(
+    *,
+    hf_model: str,
+    model_revision: str | None,
+    root_dir: Path,
+    hf_cache_rel: str,
+):
+    try:
+        from transformers import AutoTokenizer
+    except ImportError as exc:
+        raise RuntimeError(
+            "Missing dependency: transformers. Install project requirements first "
+            "(e.g. pip install -r requirements.txt)."
+        ) from exc
+
+    local_snapshot = _resolve_local_snapshot(
+        root_dir=root_dir,
+        hf_model=hf_model,
+        hf_cache_rel=hf_cache_rel,
+        revision=model_revision,
+    )
+    if local_snapshot is not None:
+        try:
+            tokenizer = AutoTokenizer.from_pretrained(
+                str(local_snapshot),
+                trust_remote_code=True,
+                local_files_only=True,
+            )
+            return tokenizer, str(local_snapshot)
+        except Exception as exc:
+            print(
+                "Warning: failed to load tokenizer from local snapshot "
+                f"{local_snapshot}: {exc}. Falling back to Hugging Face source.",
+                file=sys.stderr,
+            )
+
+    tokenizer_kwargs: dict[str, object] = {"trust_remote_code": True}
+    if model_revision and model_revision not in UNSET_LOCK_VALUES:
+        tokenizer_kwargs["revision"] = model_revision
+
+    tokenizer = AutoTokenizer.from_pretrained(hf_model, **tokenizer_kwargs)
+    if "revision" in tokenizer_kwargs:
+        source = f"{hf_model}@{tokenizer_kwargs['revision']}"
+    else:
+        source = hf_model
+    return tokenizer, source
+
+
+def _tokenize_conversations_for_model(
+    conversations: list[list[dict[str, str]]],
+    *,
+    hf_model: str,
+    model_revision: str | None,
+    root_dir: Path,
+    hf_cache_rel: str,
+) -> tuple[list[list[int]], str]:
+    tokenizer, tokenizer_source = _load_target_tokenizer(
+        hf_model=hf_model,
+        model_revision=model_revision,
+        root_dir=root_dir,
+        hf_cache_rel=hf_cache_rel,
+    )
+
+    prompt_token_ids_list: list[list[int]] = []
+    for idx, conversation in enumerate(conversations):
+        if not isinstance(conversation, list):
+            raise ValueError(f"Invalid conversation format at index {idx}")
+        rendered = tokenizer.apply_chat_template(conversation, tokenize=False, add_generation_prompt=True)
+        token_ids = tokenizer.encode(rendered, add_special_tokens=False)
+        prompt_token_ids_list.append([int(tok) for tok in token_ids])
+
+    return prompt_token_ids_list, tokenizer_source
+
+
 def _generate_one(
     *,
     url: str,
@@ -307,6 +414,9 @@ def main() -> int:
         default_base_url = f"http://127.0.0.1:{profile.runtime.host_port}"
         default_model = profile.model.served_name
         default_hf_model = profile.model.model_id
+        default_model_revision = profile.model.revision
+        default_hf_cache_rel = profile.runtime.paths.hf_cache
+        profile_root_dir = profile.root_dir
         default_temperature = profile.sample_defaults.temperature
         default_top_p = profile.sample_defaults.top_p
         default_seed = profile.sample_defaults.seed
@@ -315,6 +425,9 @@ def main() -> int:
         default_base_url = DEFAULT_BASE_URL
         default_model = DEFAULT_SERVED_MODEL
         default_hf_model = DEFAULT_HF_MODEL
+        default_model_revision = None
+        default_hf_cache_rel = "state/hf"
+        profile_root_dir = _repo_root()
         default_temperature = DEFAULT_TEMPERATURE
         default_top_p = DEFAULT_TOP_P
         default_seed = DEFAULT_SEED
@@ -326,6 +439,7 @@ def main() -> int:
     temperature = args.temperature if args.temperature is not None else default_temperature
     top_p = args.top_p if args.top_p is not None else default_top_p
     seed = args.seed if args.seed is not None else default_seed
+    model_revision = default_model_revision
     timeout_seconds = args.timeout_seconds if args.timeout_seconds is not None else default_timeout_seconds
     if timeout_seconds <= 0:
         raise ValueError("--timeout-seconds must be > 0")
@@ -383,16 +497,15 @@ def main() -> int:
             print(str(exc), file=sys.stderr)
             return 1
 
-    source_model_name, conversations, prompt_token_ids_list = _load_reference_inputs(reference_bundle_path)
+    source_model_name, conversations, reference_prompt_token_ids = _load_reference_inputs(reference_bundle_path)
     if source_model_name != hf_model:
         print(
             f"Warning: --hf-model={hf_model} differs from bundle model={source_model_name}; "
-            "using --hf-model for output metadata. This is expected when using a shared "
-            "reference prompt bundle across models.",
+            "retokenizing prompts with --hf-model tokenizer before sampling.",
             file=sys.stderr,
         )
 
-    total_available = min(len(conversations), len(prompt_token_ids_list))
+    total_available = min(len(conversations), len(reference_prompt_token_ids))
     if args.n_prompts > total_available:
         print(
             f"--n-prompts={args.n_prompts} exceeds available prompts in bundle ({total_available}).",
@@ -401,7 +514,17 @@ def main() -> int:
         return 1
 
     conversations = conversations[: args.n_prompts]
-    prompt_token_ids_list = prompt_token_ids_list[: args.n_prompts]
+    try:
+        prompt_token_ids_list, tokenizer_source = _tokenize_conversations_for_model(
+            conversations,
+            hf_model=hf_model,
+            model_revision=model_revision,
+            root_dir=profile_root_dir,
+            hf_cache_rel=default_hf_cache_rel,
+        )
+    except Exception as exc:
+        print(f"Failed to tokenize conversations for {hf_model}: {exc}", file=sys.stderr)
+        return 1
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     safe_model = hf_model.replace("/", "_")
@@ -423,6 +546,7 @@ def main() -> int:
     url = base_url.rstrip("/") + "/v1/completions"
     print(f"Sampling {len(conversations)} prompts from {url} using served model '{served_model}'")
     print(f"Reference prompt source: {reference_bundle_path}")
+    print(f"Tokenizer source: {tokenizer_source}")
     print(f"Writing output to {output_path}")
     if run_log_path is not None:
         print(f"Writing run log to {run_log_path}")
@@ -490,6 +614,8 @@ def main() -> int:
             "temperature": temperature,
             "top_k": args.top_k,
             "top_p": top_p,
+            "tokenizer_source": tokenizer_source,
+            "tokenizer_revision": model_revision if model_revision and model_revision not in UNSET_LOCK_VALUES else "",
         },
         "conversations": conversations,
         "sequences": sequences,
@@ -524,6 +650,8 @@ def main() -> int:
             "profile_config": args.config or "",
             "source_reference_bundle": str(reference_bundle_path),
             "source_reference_bundle_sha256": reference_bundle_sha256,
+            "source_reference_model": source_model_name,
+            "tokenizer_source": tokenizer_source,
             "model": hf_model,
             "served_model": served_model,
             "base_url": base_url,
@@ -536,6 +664,7 @@ def main() -> int:
                 "top_p": top_p,
                 "concurrency": args.concurrency,
                 "timeout_seconds": timeout_seconds,
+                "tokenizer_revision": model_revision if model_revision and model_revision not in UNSET_LOCK_VALUES else "",
             },
             "summary": {
                 "prompt_count": len(conversations),

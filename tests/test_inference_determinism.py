@@ -115,10 +115,15 @@ class InferenceDeterminismTests(unittest.TestCase):
             captured_kwargs: list[dict[str, object]] = []
 
             fake_profile = SimpleNamespace(
-                runtime=SimpleNamespace(host_port=8123),
+                root_dir=tmp,
+                runtime=SimpleNamespace(
+                    host_port=8123,
+                    paths=SimpleNamespace(hf_cache="state/hf"),
+                ),
                 model=SimpleNamespace(
                     served_name="kimi-k2-thinking",
                     model_id="moonshotai/Kimi-K2-Thinking",
+                    revision="deadbeef",
                 ),
                 sample_defaults=SimpleNamespace(
                     temperature=0.0,
@@ -161,12 +166,17 @@ class InferenceDeterminismTests(unittest.TestCase):
                         with mock.patch.object(sample_session, "_sha256_file", return_value="f" * 64):
                             with mock.patch.object(
                                 sample_session,
-                                "_generate_one",
-                                side_effect=fake_generate_one,
+                                "_tokenize_conversations_for_model",
+                                return_value=([[1, 2, 3]], "moonshotai/Kimi-K2-Thinking@deadbeef"),
                             ):
-                                with mock.patch.object(sys, "argv", argv):
-                                    with redirect_stdout(io.StringIO()):
-                                        rc = sample_session.main()
+                                with mock.patch.object(
+                                    sample_session,
+                                    "_generate_one",
+                                    side_effect=fake_generate_one,
+                                ):
+                                    with mock.patch.object(sys, "argv", argv):
+                                        with redirect_stdout(io.StringIO()):
+                                            rc = sample_session.main()
 
             self.assertEqual(rc, 0)
             self.assertEqual(len(captured_kwargs), 1)
@@ -184,6 +194,87 @@ class InferenceDeterminismTests(unittest.TestCase):
             self.assertEqual(payload["parameters"]["top_k"], 50)
             self.assertEqual(payload["parameters"]["top_p"], 0.95)
             self.assertEqual(payload["parameters"]["seed"], 424242)
+
+    def test_sample_session_main_retokenizes_prompts_for_target_model(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            reference_bundle_path = tmp / "reference.json"
+            reference_hash_path = tmp / "reference.sha256"
+            output_path = tmp / "output.json"
+            reference_bundle_path.write_text("{}", encoding="utf-8")
+            reference_hash_path.write_text(f"{'0' * 64}\n", encoding="utf-8")
+
+            captured_kwargs: list[dict[str, object]] = []
+
+            fake_profile = SimpleNamespace(
+                root_dir=tmp,
+                runtime=SimpleNamespace(
+                    host_port=8123,
+                    paths=SimpleNamespace(hf_cache="state/hf"),
+                ),
+                model=SimpleNamespace(
+                    served_name="gpt-oss-20b",
+                    model_id="openai/gpt-oss-20b",
+                    revision="6cee5e81ee83917806bbde320786a8fb61efebee",
+                ),
+                sample_defaults=SimpleNamespace(
+                    temperature=0.0,
+                    top_p=0.95,
+                    seed=424242,
+                    timeout_seconds=777,
+                ),
+            )
+
+            def fake_generate_one(**kwargs: object) -> tuple[list[int], int]:
+                captured_kwargs.append(dict(kwargs))
+                return [11, 22, 33], 3
+
+            argv = [
+                "sample_session.py",
+                "--config",
+                "configs/gpt-oss-20b.json",
+                "--reference-bundle",
+                str(reference_bundle_path),
+                "--reference-hash",
+                str(reference_hash_path),
+                "--n-prompts",
+                "1",
+                "--output",
+                str(output_path),
+                "--disable-run-log",
+            ]
+
+            with mock.patch.object(sample_session, "load_profile", return_value=fake_profile):
+                with mock.patch.object(sample_session, "_verify_reference_bundle_hash"):
+                    with mock.patch.object(
+                        sample_session,
+                        "_load_reference_inputs",
+                        return_value=(
+                            "Qwen/Qwen3-235B-A22B-Instruct-2507",
+                            [[{"role": "user", "content": "test"}]],
+                            [[151644, 8948, 198, 2610]],
+                        ),
+                    ):
+                        with mock.patch.object(sample_session, "_sha256_file", return_value="f" * 64):
+                            with mock.patch.object(
+                                sample_session,
+                                "_tokenize_conversations_for_model",
+                                return_value=([[1, 2, 3, 4]], "openai/gpt-oss-20b@6cee5e8"),
+                            ):
+                                with mock.patch.object(
+                                    sample_session,
+                                    "_generate_one",
+                                    side_effect=fake_generate_one,
+                                ):
+                                    with mock.patch.object(sys, "argv", argv):
+                                        with redirect_stdout(io.StringIO()):
+                                            rc = sample_session.main()
+
+            self.assertEqual(rc, 0)
+            self.assertEqual(len(captured_kwargs), 1)
+            self.assertEqual(captured_kwargs[0]["prompt_token_ids"], [1, 2, 3, 4])
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["sequences"][0]["prompt_token_ids"], [1, 2, 3, 4])
 
     def test_smoke_request_payload_is_repeatable(self) -> None:
         config_path = ROOT_DIR / "configs" / "qwen3-235b-a22b-instruct-2507.json"
