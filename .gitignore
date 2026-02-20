@@ -1,16 +1,14 @@
 .env
+.venv
 __pycache__/
 *.pyc
+*.swp
 
-# Runtime model cache / weights (large, host-specific)
 state/hf/
 
-# Generated runtime compose + lock files (rebuildable)
 state/generated/
 
-# Determinism run logs / evaluation reports (machine-local, high churn)
 state/evals/
 
-# Root-level reproducibility manifests are intended to be committed
 !manifests/
 !manifests/**

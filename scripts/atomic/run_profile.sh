@@ -20,6 +20,7 @@ Usage:
 
 Orchestrates the standard profile workflow:
   start -> wait (with strict manifest verify) -> smoke -> optional hash -> optional stop
+Requires an existing pinned snapshot manifest; the workflow never auto-bootstraps trust roots.
 
 Options:
   --config <path>              Profile JSON path.
@@ -111,70 +112,45 @@ config_path = Path(sys.argv[2]).resolve()
 override = sys.argv[3].strip()
 
 sys.path.insert(0, str(root_dir / "scripts" / "core"))
+from integrity_utils import resolve_manifest_template  # type: ignore
 from profile_config import load_profile  # type: ignore
 
 profile = load_profile(config_path)
 
-template = override or profile.integrity.expected_snapshot_manifest.strip()
-if not template:
-    template = "manifests/{profile_id}/{revision}.sha256"
-
-try:
-    rendered = template.format(
-        profile_id=profile.profile_id,
-        revision=profile.model.revision,
-        model_id=profile.model.model_id,
-        model_id_slug=profile.model.model_id.replace("/", "--"),
-    )
-except KeyError as exc:
-    raise SystemExit(f"Unknown placeholder '{exc.args[0]}' in manifest path template: {template}")
-
-path = Path(rendered).expanduser()
-if not path.is_absolute():
-    path = profile.root_dir / path
+template = override or profile.integrity.expected_snapshot_manifest.strip() or "manifests/{profile_id}/{revision}.sha256"
+path = resolve_manifest_template(
+    template=template,
+    root_dir=profile.root_dir,
+    profile_id=profile.profile_id,
+    revision=profile.model.revision,
+    model_id=profile.model.model_id,
+)
 print(path)
 PY
 }
 
 manifest_path="$(resolve_manifest_path)"
-bootstrap_manifest=0
+
+if [[ ! -f "${manifest_path}" ]]; then
+  echo "Pinned snapshot manifest is required but missing:" >&2
+  echo "  ${manifest_path}" >&2
+  echo "Refusing to auto-bootstrap trust roots from local state." >&2
+  echo "Create/commit the manifest out-of-band, then rerun." >&2
+  exit 1
+fi
 
 log_step "Starting server"
 python3 "${ROOT_DIR}/scripts/core/serve.py" start \
   --config "${config}" \
   --secrets-file "${secrets_file}"
 
-if [[ -f "${manifest_path}" ]]; then
-  log_step "Manifest detected at ${manifest_path}; waiting with strict verification"
-  python3 "${ROOT_DIR}/scripts/core/serve.py" wait \
-    --config "${config}" \
-    --secrets-file "${secrets_file}" \
-    --timeout-seconds "${timeout_seconds}" \
-    --verify-manifest \
-    --expected-manifest "${manifest_path}"
-else
-  log_step "Manifest not detected at ${manifest_path}"
-  bootstrap_manifest=1
-  log_step "Bootstrapping missing manifest automatically"
-
-  log_step "Waiting for readiness (bootstrap run without manifest verification)"
-  python3 "${ROOT_DIR}/scripts/core/serve.py" wait \
-    --config "${config}" \
-    --secrets-file "${secrets_file}" \
-    --timeout-seconds "${timeout_seconds}"
-
-  log_step "Generating bootstrap manifest at ${manifest_path}"
-  python3 "${ROOT_DIR}/scripts/core/serve.py" hash \
-    --config "${config}" \
-    --secrets-file "${secrets_file}" \
-    --output "${manifest_path}"
-
-  log_step "Verifying newly generated manifest"
-  python3 "${ROOT_DIR}/scripts/core/serve.py" verify \
-    --config "${config}" \
-    --secrets-file "${secrets_file}" \
-    --expected-manifest "${manifest_path}"
-fi
+log_step "Manifest detected at ${manifest_path}; waiting with strict verification"
+python3 "${ROOT_DIR}/scripts/core/serve.py" wait \
+  --config "${config}" \
+  --secrets-file "${secrets_file}" \
+  --timeout-seconds "${timeout_seconds}" \
+  --verify-manifest \
+  --expected-manifest "${manifest_path}"
 
 if [[ "${run_smoke}" -eq 1 ]]; then
   log_step "Running smoke test"
@@ -186,20 +162,16 @@ else
 fi
 
 if [[ "${run_hash}" -eq 1 ]]; then
-  if [[ "${bootstrap_manifest}" -eq 1 && -z "${hash_output}" ]]; then
-    log_step "Skipping optional hash (bootstrap manifest already generated at ${manifest_path})"
-  else
-    log_step "Writing snapshot hash manifest"
-    hash_cmd=(
-      python3 "${ROOT_DIR}/scripts/core/serve.py" hash
-      --config "${config}"
-      --secrets-file "${secrets_file}"
-    )
-    if [[ -n "${hash_output}" ]]; then
-      hash_cmd+=(--output "${hash_output}")
-    fi
-    "${hash_cmd[@]}"
+  log_step "Writing snapshot hash manifest"
+  hash_cmd=(
+    python3 "${ROOT_DIR}/scripts/core/serve.py" hash
+    --config "${config}"
+    --secrets-file "${secrets_file}"
+  )
+  if [[ -n "${hash_output}" ]]; then
+    hash_cmd+=(--output "${hash_output}")
   fi
+  "${hash_cmd[@]}"
 else
   log_step "Skipping snapshot hash generation (--hash to enable)"
 fi

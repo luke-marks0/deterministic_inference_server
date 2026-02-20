@@ -11,17 +11,17 @@
   },
   "profile": {
     "description": "Reference profile for gpt-oss-120b with deterministic-oriented vLLM flags.",
-    "id": "gpt-oss-120b-auto"
+    "id": "gpt-oss-120b-fp16"
   },
   "runtime": {
     "compose_project_name": "vllm_gpt_oss_120b",
     "container_name": "vllm_gpt_oss_120b",
     "host_port": 8003,
-    "image": "vllm/vllm-openai:v0.11.0"
+    "image": "docker.io/vllm/vllm-openai@sha256:d8d39b59e909d2378ac4feeb191f7e7b6f1342477dc66b7c47cec89e9985ad8a"
   },
   "vllm": {
     "flags": [
-      "--dtype=auto",
+      "--dtype=float16",
       "--tensor-parallel-size=1",
       "--pipeline-parallel-size=1",
       "--max-model-len=32768"

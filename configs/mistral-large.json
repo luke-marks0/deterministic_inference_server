@@ -1,0 +1,29 @@
+{
+  "base_config": "standard-base.json",
+  "integrity": {
+    "expected_snapshot_manifest": "manifests/mistral-large/{revision}.sha256"
+  },
+  "model": {
+    "id": "mistralai/Mistral-Large-Instruct-2411",
+    "locked_at_utc": "2026-02-20T13:13:18Z",
+    "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4",
+    "served_name": "mistral-large"
+  },
+  "profile": {
+    "description": "Reference profile for Mistral-Large-Instruct-2411 with deterministic-oriented vLLM flags.",
+    "id": "mistral-large-fp16"
+  },
+  "runtime": {
+    "compose_project_name": "vllm_mistral_large",
+    "container_name": "vllm_mistral_large",
+    "host_port": 8009
+  },
+  "vllm": {
+    "flags": [
+      "--dtype=float16",
+      "--tensor-parallel-size=8",
+      "--pipeline-parallel-size=1",
+      "--max-model-len=32768"
+    ]
+  }
+}

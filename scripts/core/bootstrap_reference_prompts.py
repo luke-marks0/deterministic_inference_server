@@ -11,13 +11,12 @@ Then it writes a local prompt bundle and a SHA-256 lock file.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-from datetime import datetime, timezone
 from itertools import islice
 from pathlib import Path
 
-from profile_config import load_profile
+from integrity_utils import sha256_file, snapshot_dir as resolve_snapshot_dir
+from profile_config import UNSET_LOCK_VALUES, load_profile
 
 
 DEFAULT_HF_MODEL = "Qwen/Qwen3-235B-A22B-Instruct-2507"
@@ -102,14 +101,7 @@ def _write_sha256(path: Path, digest: str, data_path: Path) -> None:
 
 
 def _sha256_file(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as f:
-        while True:
-            chunk = f.read(1024 * 1024)
-            if not chunk:
-                break
-            hasher.update(chunk)
-    return hasher.hexdigest()
+    return sha256_file(path)
 
 
 def _resolve_local_snapshot(
@@ -119,23 +111,16 @@ def _resolve_local_snapshot(
     hf_cache_rel: str,
     revision: str | None,
 ) -> Path | None:
-    model_cache_dir = (
-        root_dir
-        / hf_cache_rel
-        / "hub"
-        / f"models--{hf_model.replace('/', '--')}"
-        / "snapshots"
-    )
-    if not model_cache_dir.is_dir():
+    if not revision or revision in UNSET_LOCK_VALUES:
         return None
 
-    if revision:
-        candidate = model_cache_dir / revision
-        if candidate.is_dir():
-            return candidate
-
-    snapshots = sorted((p for p in model_cache_dir.iterdir() if p.is_dir()), key=lambda p: p.stat().st_mtime, reverse=True)
-    return snapshots[0] if snapshots else None
+    snapshot_path = resolve_snapshot_dir(
+        root_dir=root_dir,
+        hf_cache_rel=hf_cache_rel,
+        model_id=hf_model,
+        revision=revision,
+    )
+    return snapshot_path if snapshot_path.is_dir() else None
 
 
 def main() -> int:
@@ -230,6 +215,22 @@ def main() -> int:
         raise ValueError("--max-ctx-len must be > 0")
     if args.scan_limit <= 0:
         raise ValueError("--scan-limit must be > 0")
+    if not model_revision or model_revision in UNSET_LOCK_VALUES:
+        raise SystemExit(
+            "Tokenizer/model revision must be pinned for reproducible prompt bootstrapping.\n"
+            "Provide --model-revision, or use --config with a locked model revision."
+        )
+    if not args.dataset_revision:
+        raise SystemExit(
+            "Dataset revision must be pinned for reproducible prompt bootstrapping.\n"
+            "Provide --dataset-revision <commit/tag>."
+        )
+    if tokenizer_name != hf_model:
+        raise SystemExit(
+            "Strict mode requires tokenizer identity to match the target HF model.\n"
+            f"  --hf-model:      {hf_model}\n"
+            f"  --tokenizer-name:{tokenizer_name}"
+        )
 
     output_path = Path(args.output).expanduser() if args.output else _default_output_path()
     hash_path = Path(args.hash_output).expanduser() if args.hash_output else _default_hash_path()
@@ -271,6 +272,7 @@ def main() -> int:
     )
 
     print(f"Loading tokenizer for {tokenizer_name}")
+    tokenizer_source = f"{hf_model}@{model_revision}"
     if local_snapshot is not None:
         print(f"Using local tokenizer snapshot first: {local_snapshot}")
         try:
@@ -279,15 +281,14 @@ def main() -> int:
                 trust_remote_code=True,
                 local_files_only=True,
             )
-            tokenizer_source = str(local_snapshot)
         except Exception as local_exc:  # pragma: no cover
             print(f"Local snapshot tokenizer load failed, trying remote source: {local_exc}")
             try:
-                tokenizer_kwargs: dict[str, object] = {"trust_remote_code": True}
-                if model_revision:
-                    tokenizer_kwargs["revision"] = model_revision
+                tokenizer_kwargs: dict[str, object] = {
+                    "trust_remote_code": True,
+                    "revision": model_revision,
+                }
                 tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, **tokenizer_kwargs)
-                tokenizer_source = str(tokenizer_name)
             except Exception as remote_exc:  # pragma: no cover
                 raise SystemExit(
                     f"Failed to load tokenizer from local snapshot '{local_snapshot}' and remote '{tokenizer_name}'.\n"
@@ -296,11 +297,11 @@ def main() -> int:
                 ) from remote_exc
     else:
         try:
-            tokenizer_kwargs = {"trust_remote_code": True}
-            if model_revision:
-                tokenizer_kwargs["revision"] = model_revision
+            tokenizer_kwargs = {
+                "trust_remote_code": True,
+                "revision": model_revision,
+            }
             tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, **tokenizer_kwargs)
-            tokenizer_source = str(tokenizer_name)
         except Exception as remote_exc:  # pragma: no cover
             raise SystemExit(
                 f"Failed to load tokenizer for {tokenizer_name}: {remote_exc}\n"
@@ -312,9 +313,11 @@ def main() -> int:
         f"Streaming dataset {args.dataset} split={args.dataset_split} "
         f"scan_limit={args.scan_limit}"
     )
-    dataset_kwargs: dict[str, object] = {"split": args.dataset_split, "streaming": True}
-    if args.dataset_revision:
-        dataset_kwargs["revision"] = args.dataset_revision
+    dataset_kwargs: dict[str, object] = {
+        "split": args.dataset_split,
+        "streaming": True,
+        "revision": args.dataset_revision,
+    }
 
     try:
         ds = load_dataset(args.dataset, **dataset_kwargs)
@@ -398,7 +401,6 @@ def main() -> int:
         },
         "conversations": conversations,
         "source": {
-            "downloaded_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "method": "huggingface_dataset_streaming",
         },
     }

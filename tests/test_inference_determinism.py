@@ -166,8 +166,8 @@ class InferenceDeterminismTests(unittest.TestCase):
                         with mock.patch.object(sample_session, "_sha256_file", return_value="f" * 64):
                             with mock.patch.object(
                                 sample_session,
-                                "_verify_tokenizer_files_against_manifest",
-                                return_value=(tmp / "snapshot", tmp / "manifest.sha256", ["tokenizer_config.json"]),
+                                "_verify_full_snapshot_against_manifest",
+                                return_value=(tmp / "snapshot", tmp / "manifest.sha256", 123),
                             ):
                                 with mock.patch.object(
                                     sample_session,
@@ -263,8 +263,8 @@ class InferenceDeterminismTests(unittest.TestCase):
                         with mock.patch.object(sample_session, "_sha256_file", return_value="f" * 64):
                             with mock.patch.object(
                                 sample_session,
-                                "_verify_tokenizer_files_against_manifest",
-                                return_value=(tmp / "snapshot", tmp / "manifest.sha256", ["tokenizer_config.json"]),
+                                "_verify_full_snapshot_against_manifest",
+                                return_value=(tmp / "snapshot", tmp / "manifest.sha256", 123),
                             ):
                                 with mock.patch.object(
                                     sample_session,
@@ -285,6 +285,59 @@ class InferenceDeterminismTests(unittest.TestCase):
             self.assertEqual(captured_kwargs[0]["prompt_token_ids"], [1, 2, 3, 4])
             payload = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertEqual(payload["sequences"][0]["prompt_token_ids"], [1, 2, 3, 4])
+
+    def test_sample_session_main_rejects_concurrency_above_one(self) -> None:
+        fake_profile = SimpleNamespace(
+            runtime=SimpleNamespace(host_port=8123),
+            model=SimpleNamespace(
+                served_name="gpt-oss-20b",
+                model_id="openai/gpt-oss-20b",
+                revision="6cee5e81ee83917806bbde320786a8fb61efebee",
+            ),
+            sample_defaults=SimpleNamespace(
+                temperature=0.0,
+                top_p=0.95,
+                seed=424242,
+                timeout_seconds=777,
+            ),
+        )
+        argv = [
+            "sample_session.py",
+            "--config",
+            "configs/gpt-oss-20b.json",
+            "--concurrency",
+            "2",
+        ]
+        with mock.patch.object(sample_session, "load_profile", return_value=fake_profile):
+            with mock.patch.object(sys, "argv", argv):
+                with self.assertRaisesRegex(ValueError, "exactly 1"):
+                    sample_session.main()
+
+    def test_sample_session_main_rejects_skip_hash_flag(self) -> None:
+        fake_profile = SimpleNamespace(
+            runtime=SimpleNamespace(host_port=8123),
+            model=SimpleNamespace(
+                served_name="gpt-oss-20b",
+                model_id="openai/gpt-oss-20b",
+                revision="6cee5e81ee83917806bbde320786a8fb61efebee",
+            ),
+            sample_defaults=SimpleNamespace(
+                temperature=0.0,
+                top_p=0.95,
+                seed=424242,
+                timeout_seconds=777,
+            ),
+        )
+        argv = [
+            "sample_session.py",
+            "--config",
+            "configs/gpt-oss-20b.json",
+            "--skip-reference-hash-check",
+        ]
+        with mock.patch.object(sample_session, "load_profile", return_value=fake_profile):
+            with mock.patch.object(sys, "argv", argv):
+                with self.assertRaisesRegex(ValueError, "disallowed"):
+                    sample_session.main()
 
     def test_smoke_request_payload_is_repeatable(self) -> None:
         config_path = ROOT_DIR / "configs" / "qwen3-235b-a22b-instruct-2507.json"

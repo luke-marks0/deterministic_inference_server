@@ -17,11 +17,11 @@
     "compose_project_name": "vllm_deepseek_v3_2",
     "container_name": "vllm_deepseek_v3_2",
     "host_port": 8004,
-    "image": "vllm/vllm-openai:v0.14.1"
+    "image": "docker.io/vllm/vllm-openai@sha256:8e67731819426f7df194e5a0dfd6649d3aa3474f80c44f75b1e8711e76f8030a"
   },
   "vllm": {
     "flags": [
-      "--dtype=auto",
+      "--dtype=float16",
       "--tensor-parallel-size=8",
       "--pipeline-parallel-size=1",
       "--max-model-len=32768"

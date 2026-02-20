@@ -5,7 +5,7 @@
     "description": "Shared deterministic defaults for model profiles."
   },
   "runtime": {
-    "image": "vllm/vllm-openai:v0.8.5.post1",
+    "image": "docker.io/vllm/vllm-openai@sha256:c48cf118e1e6e39d7790e174d6014f7af5d06f79c2d29d984d11cbe2e8d414e7",
     "gpus": "all",
     "ipc_mode": "host",
     "restart": "unless-stopped",
@@ -26,9 +26,7 @@
       "HF_HOME": "/data/hf",
       "CUDA_DEVICE_MAX_CONNECTIONS": "1",
       "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
-    },
-    "bootstrap_pip_packages": [
-    ]
+    }
   },
   "model": {
     "id": "org/model-name",
@@ -38,7 +36,7 @@
   },
   "integrity": {
     "expected_snapshot_manifest": "manifests/{profile_id}/{revision}.sha256",
-    "enforce_on_wait": false
+    "enforce_on_wait": true
   },
   "vllm": {
     "flags": [

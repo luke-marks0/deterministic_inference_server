@@ -3,7 +3,7 @@
 # a fully resolved compose file to `state/generated/<profile_id>/docker-compose.yml`.
 services:
   vllm:
-    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.8.5.post1}
+    image: ${VLLM_IMAGE}
     container_name: ${CONTAINER_NAME:-vllm_server}
     gpus: ${GPUS:-all}
     ipc: ${IPC_MODE:-host}

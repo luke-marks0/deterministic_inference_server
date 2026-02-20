@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import http.client
-import hashlib
 import json
 import os
 import subprocess
@@ -16,9 +15,18 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+from integrity_utils import (
+    compare_manifest_entries,
+    load_manifest_entries,
+    resolve_manifest_template,
+    snapshot_dir as resolve_snapshot_dir,
+    snapshot_manifest_lines,
+    snapshot_manifest_entries,
+)
 from profile_config import (
     UNSET_LOCK_VALUES,
     ServeProfile,
+    is_image_digest_pinned,
     load_profile,
     write_rendered_files,
 )
@@ -164,75 +172,25 @@ def _prepare_dirs(profile: ServeProfile) -> None:
 
 
 def _snapshot_dir(profile: ServeProfile) -> Path:
-    return (
-        profile.root_dir
-        / profile.runtime.paths.hf_cache
-        / "hub"
-        / profile.model_cache_path
-        / "snapshots"
-        / profile.model.revision
+    return resolve_snapshot_dir(
+        root_dir=profile.root_dir,
+        hf_cache_rel=profile.runtime.paths.hf_cache,
+        model_id=profile.model.model_id,
+        revision=profile.model.revision,
     )
 
 
-def _sha256_file(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        while True:
-            chunk = handle.read(16 * 1024 * 1024)
-            if not chunk:
-                break
-            hasher.update(chunk)
-    return hasher.hexdigest()
-
-
-def _snapshot_manifest_lines(snapshot_dir: Path) -> list[str]:
-    files = sorted(path for path in snapshot_dir.rglob("*") if path.is_file())
-    lines: list[str] = []
-    for path in files:
-        digest = _sha256_file(path)
-        rel = path.relative_to(snapshot_dir).as_posix()
-        lines.append(f"{digest}  ./{rel}")
-    return lines
-
-
 def _resolve_manifest_template(profile: ServeProfile, template: str) -> Path:
-    template = template.strip()
-    if not template:
-        raise SystemExit("Manifest template/path cannot be empty.")
-
     try:
-        rendered = template.format(
+        return resolve_manifest_template(
+            template=template,
+            root_dir=profile.root_dir,
             profile_id=profile.profile_id,
             revision=profile.model.revision,
             model_id=profile.model.model_id,
-            model_id_slug=profile.model.model_id.replace("/", "--"),
         )
-    except KeyError as exc:
-        raise SystemExit(
-            f"Unknown placeholder '{exc.args[0]}' in manifest path template: {template}"
-        ) from exc
-
-    path = Path(rendered).expanduser()
-    if not path.is_absolute():
-        path = profile.root_dir / path
-    return path
-
-
-def _load_manifest_map(manifest_path: Path) -> dict[str, str]:
-    entries: dict[str, str] = {}
-    for line_no, line in enumerate(manifest_path.read_text(encoding="utf-8").splitlines(), start=1):
-        stripped = line.strip()
-        if not stripped:
-            continue
-        parts = stripped.split("  ", 1)
-        if len(parts) != 2:
-            raise SystemExit(
-                f"Invalid manifest format in {manifest_path}:{line_no}. "
-                "Expected '<sha256>  ./relative/path'."
-            )
-        digest, rel_path = parts[0].strip(), parts[1].strip()
-        entries[rel_path] = digest
-    return entries
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 def _verify_snapshot_manifest(profile: ServeProfile, expected_template_or_path: str) -> int:
@@ -248,22 +206,22 @@ def _verify_snapshot_manifest(profile: ServeProfile, expected_template_or_path: 
         print(f"Expected manifest not found: {expected_path}", file=sys.stderr)
         return 1
 
-    actual_entries: dict[str, str] = {}
-    for line in _snapshot_manifest_lines(snapshot_dir):
-        digest, rel_path = line.split("  ", 1)
-        actual_entries[rel_path] = digest
+    try:
+        expected_entries = load_manifest_entries(expected_path)
+        actual_entries = snapshot_manifest_entries(snapshot_dir)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
-    expected_entries = _load_manifest_map(expected_path)
-
-    expected_paths = set(expected_entries.keys())
-    actual_paths = set(actual_entries.keys())
-    missing_paths = sorted(expected_paths - actual_paths)
-    extra_paths = sorted(actual_paths - expected_paths)
-    changed_paths = sorted(
-        path for path in (expected_paths & actual_paths) if expected_entries[path] != actual_entries[path]
+    diff = compare_manifest_entries(
+        expected_entries=expected_entries,
+        actual_entries=actual_entries,
     )
+    missing_paths = diff.missing_paths
+    extra_paths = diff.extra_paths
+    changed_paths = diff.changed_paths
 
-    if not missing_paths and not extra_paths and not changed_paths:
+    if diff.is_match:
         print(f"Snapshot manifest verification passed: {expected_path}")
         print(f"Verified files: {len(actual_entries)}")
         return 0
@@ -312,6 +270,11 @@ def cmd_show(args: argparse.Namespace) -> int:
 def cmd_start(args: argparse.Namespace) -> int:
     profile = load_profile(args.config)
     _ensure_revision_locked(profile)
+    if not is_image_digest_pinned(profile.runtime.image):
+        raise SystemExit(
+            "runtime.image is not pinned to an immutable digest. "
+            "Run ./scripts/workflow.sh lock-image --config <config>."
+        )
     _prepare_dirs(profile)
     compose_path, lock_path = write_rendered_files(profile)
     env = _build_docker_env(profile, args.secrets_file)
@@ -515,17 +478,51 @@ def cmd_lock_model(args: argparse.Namespace) -> int:
 
 
 def _first_repo_digest(image: str) -> str:
-    _run(["docker", "pull", image])
     result = subprocess.run(
-        ["docker", "image", "inspect", "--format", "{{index .RepoDigests 0}}", image],
+        ["docker", "manifest", "inspect", image, "--verbose"],
         check=True,
         capture_output=True,
         text=True,
     )
-    digest = result.stdout.strip()
-    if not digest:
-        raise SystemExit(f"Could not resolve repo digest for image: {image}")
-    return digest
+    payload = json.loads(result.stdout)
+    if isinstance(payload, dict):
+        candidates = [payload]
+    elif isinstance(payload, list):
+        candidates = [item for item in payload if isinstance(item, dict)]
+    else:
+        raise SystemExit(f"Unexpected manifest payload type for image: {image}")
+    if not candidates:
+        raise SystemExit(f"No manifest entries found for image: {image}")
+
+    chosen = None
+    for candidate in candidates:
+        descriptor = candidate.get("Descriptor")
+        if not isinstance(descriptor, dict):
+            continue
+        platform = descriptor.get("platform")
+        if isinstance(platform, dict) and platform.get("os") == "linux" and platform.get("architecture") == "amd64":
+            chosen = candidate
+            break
+    if chosen is None:
+        chosen = candidates[0]
+
+    descriptor = chosen.get("Descriptor")
+    if not isinstance(descriptor, dict):
+        raise SystemExit(f"Manifest entry missing descriptor for image: {image}")
+    digest = descriptor.get("digest")
+    if not isinstance(digest, str) or not digest.startswith("sha256:"):
+        raise SystemExit(f"Could not resolve sha256 digest for image: {image}")
+
+    ref = chosen.get("Ref")
+    if not isinstance(ref, str) or not ref:
+        ref = image
+    repo = ref.split("@", 1)[0]
+    last_slash = repo.rfind("/")
+    last_colon = repo.rfind(":")
+    if last_colon > last_slash:
+        repo = repo[:last_colon]
+
+    return f"{repo}@{digest}"
 
 
 def cmd_lock_image(args: argparse.Namespace) -> int:

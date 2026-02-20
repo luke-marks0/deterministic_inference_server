@@ -1,0 +1,29 @@
+{
+  "base_config": "standard-base.json",
+  "integrity": {
+    "expected_snapshot_manifest": "manifests/kimi-k2-instruct/{revision}.sha256"
+  },
+  "model": {
+    "id": "moonshotai/Kimi-K2-Instruct",
+    "locked_at_utc": "2026-02-20T13:13:18Z",
+    "revision": "1cbe779b5c9d45782861647236f67e2e1aab55f0",
+    "served_name": "kimi-k2-instruct"
+  },
+  "profile": {
+    "description": "Reference profile for Kimi-K2-Instruct with deterministic-oriented vLLM flags.",
+    "id": "kimi-k2-instruct-fp16"
+  },
+  "runtime": {
+    "compose_project_name": "vllm_kimi_k2_instruct",
+    "container_name": "vllm_kimi_k2_instruct",
+    "host_port": 8005
+  },
+  "vllm": {
+    "flags": [
+      "--dtype=float16",
+      "--tensor-parallel-size=8",
+      "--pipeline-parallel-size=1",
+      "--max-model-len=32768"
+    ]
+  }
+}

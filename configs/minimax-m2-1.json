@@ -1,0 +1,29 @@
+{
+  "base_config": "standard-base.json",
+  "integrity": {
+    "expected_snapshot_manifest": "manifests/minimax-m2-1/{revision}.sha256"
+  },
+  "model": {
+    "id": "MiniMaxAI/MiniMax-M2.1",
+    "locked_at_utc": "2026-02-20T13:13:18Z",
+    "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+    "served_name": "minimax-m2-1"
+  },
+  "profile": {
+    "description": "Reference profile for MiniMax-M2.1 with deterministic-oriented vLLM flags.",
+    "id": "minimax-m2-1-fp16"
+  },
+  "runtime": {
+    "compose_project_name": "vllm_minimax_m2_1",
+    "container_name": "vllm_minimax_m2_1",
+    "host_port": 8007
+  },
+  "vllm": {
+    "flags": [
+      "--dtype=float16",
+      "--tensor-parallel-size=8",
+      "--pipeline-parallel-size=1",
+      "--max-model-len=32768"
+    ]
+  }
+}
