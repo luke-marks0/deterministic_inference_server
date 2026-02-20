@@ -1,0 +1,29 @@
+{
+  "base_config": "standard-base.json",
+  "integrity": {
+    "expected_snapshot_manifest": "manifests/qwen3-8b/{revision}.sha256"
+  },
+  "model": {
+    "id": "Qwen/Qwen3-8B",
+    "locked_at_utc": "2026-02-20T06:35:45Z",
+    "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+    "served_name": "qwen3-8b"
+  },
+  "profile": {
+    "description": "Reference profile for Qwen3-8B with deterministic-oriented vLLM flags.",
+    "id": "qwen3-8b-fp16"
+  },
+  "runtime": {
+    "compose_project_name": "vllm_qwen3_8b",
+    "container_name": "vllm_qwen3_8b",
+    "host_port": 8003
+  },
+  "vllm": {
+    "flags": [
+      "--dtype=float16",
+      "--tensor-parallel-size=1",
+      "--pipeline-parallel-size=1",
+      "--max-model-len=32768"
+    ]
+  }
+}

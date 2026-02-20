@@ -1,10 +1,6 @@
-# Install with:
-#   uv pip install -r requirements.txt
-#
-# Non-stdlib Python dependencies used by local scripts.
-
 blobfile==2.1.1
 datasets>=2.20.0
 filelock>=3.13.0
 tiktoken>=0.7.0
 transformers>=4.51.0
+jinja2>=3.1.6
