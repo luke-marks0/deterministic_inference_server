@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import platform
 from pathlib import Path
 from typing import Any
@@ -7,6 +8,8 @@ from typing import Any
 from .common import (
     MANIFEST_KIND,
     SCHEMA_VERSION,
+    SHARED_PROMPT_DATASET_MAX_PROMPTS,
+    SHARED_PROMPT_DATASET_PATH,
     ManifestValidationError,
     _load_json_object,
     _normalize_pinned_image_reference,
@@ -417,104 +420,156 @@ def _validate_model(model: dict[str, Any], errors: list[str]) -> None:
         errors.append(f"{path}.chat_template: expected object.")
 
 
+def _validate_request_sampling(
+    sampling: Any,
+    *,
+    path: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(sampling, dict):
+        errors.append(f"{path}.sampling: expected object.")
+        return
+
+    s_allowed = {"temperature", "top_p", "top_k", "max_tokens", "seed"}
+    _reject_unknown_keys(sampling, s_allowed, path=f"{path}.sampling", errors=errors)
+    _require_keys(sampling, s_allowed, path=f"{path}.sampling", errors=errors)
+    if "temperature" in sampling and not isinstance(sampling["temperature"], (int, float)):
+        errors.append(f"{path}.sampling.temperature: expected number.")
+    if "top_p" in sampling and not isinstance(sampling["top_p"], (int, float)):
+        errors.append(f"{path}.sampling.top_p: expected number.")
+    top_k = sampling.get("top_k")
+    if not (top_k is None or isinstance(top_k, int)):
+        errors.append(f"{path}.sampling.top_k: expected int|null.")
+    if "max_tokens" in sampling and (
+        not isinstance(sampling["max_tokens"], int) or sampling["max_tokens"] <= 0
+    ):
+        errors.append(f"{path}.sampling.max_tokens: expected int > 0.")
+    if "seed" in sampling and not isinstance(sampling["seed"], int):
+        errors.append(f"{path}.sampling.seed: expected int.")
+
+
+def _validate_request_stop(
+    stop: Any,
+    *,
+    path: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(stop, dict):
+        errors.append(f"{path}.stop: expected object.")
+        return
+
+    stop_allowed = {"sequences", "token_ids"}
+    _reject_unknown_keys(stop, stop_allowed, path=f"{path}.stop", errors=errors)
+    _require_keys(stop, stop_allowed, path=f"{path}.stop", errors=errors)
+    sequences = stop.get("sequences")
+    token_ids = stop.get("token_ids")
+    if not isinstance(sequences, list) or any(not isinstance(item, str) for item in sequences):
+        errors.append(f"{path}.stop.sequences: expected list[str].")
+    if not isinstance(token_ids, list) or any(not isinstance(item, int) for item in token_ids):
+        errors.append(f"{path}.stop.token_ids: expected list[int].")
+
+
 def _validate_inference(inference: dict[str, Any], errors: list[str]) -> None:
     path = "inference"
-    allowed = {"requests", "batching"}
+    allowed = {"requests", "batching", "n_prompts", "request_template"}
     _reject_unknown_keys(inference, allowed, path=path, errors=errors)
-    _require_keys(inference, allowed, path=path, errors=errors)
+    _require_keys(inference, {"batching"}, path=path, errors=errors)
 
     requests = inference.get("requests")
-    if not isinstance(requests, list) or not requests:
-        errors.append(f"{path}.requests: expected non-empty list.")
+    request_template = inference.get("request_template")
+    n_prompts = inference.get("n_prompts")
+
+    uses_explicit_requests = isinstance(requests, list)
+    uses_shared_prompt_dataset = requests is None and (
+        "n_prompts" in inference or "request_template" in inference
+    )
+
+    if uses_explicit_requests and uses_shared_prompt_dataset:
+        errors.append(
+            f"{path}: choose either explicit requests or n_prompts+request_template, not both."
+        )
+    elif uses_explicit_requests:
+        if not requests:
+            errors.append(f"{path}.requests: expected non-empty list.")
+        else:
+            request_ids: set[str] = set()
+            for idx, request in enumerate(requests):
+                rpath = f"{path}.requests[{idx}]"
+                if not isinstance(request, dict):
+                    errors.append(f"{rpath}: expected object.")
+                    continue
+                allowed_keys = {
+                    "id",
+                    "kind",
+                    "prompt",
+                    "messages",
+                    "prompt_token_ids",
+                    "sampling",
+                    "stop",
+                }
+                _reject_unknown_keys(request, allowed_keys, path=rpath, errors=errors)
+                _require_keys(request, {"id", "kind", "sampling", "stop"}, path=rpath, errors=errors)
+
+                req_id = request.get("id")
+                if isinstance(req_id, str):
+                    if req_id in request_ids:
+                        errors.append(f"{rpath}.id: duplicate request id '{req_id}'.")
+                    request_ids.add(req_id)
+                else:
+                    errors.append(f"{rpath}.id: expected string.")
+
+                if "kind" in request and request["kind"] not in {"completion", "chat"}:
+                    errors.append(f"{rpath}.kind: must be 'completion' or 'chat'.")
+
+                has_prompt = isinstance(request.get("prompt"), str)
+                has_messages = isinstance(request.get("messages"), list)
+                has_prompt_ids = isinstance(request.get("prompt_token_ids"), list)
+                if sum([has_prompt, has_messages, has_prompt_ids]) == 0:
+                    errors.append(
+                        f"{rpath}: one of prompt|messages|prompt_token_ids is required."
+                    )
+
+                if has_messages:
+                    messages = request["messages"]
+                    if any(
+                        not isinstance(msg, dict)
+                        or not isinstance(msg.get("role"), str)
+                        or not isinstance(msg.get("content"), str)
+                        for msg in messages
+                    ):
+                        errors.append(f"{rpath}.messages: expected list of role/content objects.")
+
+                if has_prompt_ids:
+                    prompt_ids = request["prompt_token_ids"]
+                    if any(not isinstance(tok, int) for tok in prompt_ids):
+                        errors.append(f"{rpath}.prompt_token_ids: expected list[int].")
+
+                _validate_request_sampling(request.get("sampling"), path=rpath, errors=errors)
+                _validate_request_stop(request.get("stop"), path=rpath, errors=errors)
     else:
-        request_ids: set[str] = set()
-        for idx, request in enumerate(requests):
-            rpath = f"{path}.requests[{idx}]"
-            if not isinstance(request, dict):
-                errors.append(f"{rpath}: expected object.")
-                continue
-            allowed_keys = {
-                "id",
-                "kind",
-                "prompt",
-                "messages",
-                "prompt_token_ids",
-                "sampling",
-                "stop",
-            }
-            _reject_unknown_keys(request, allowed_keys, path=rpath, errors=errors)
-            _require_keys(request, {"id", "kind", "sampling", "stop"}, path=rpath, errors=errors)
+        if not isinstance(n_prompts, int):
+            errors.append(f"{path}.n_prompts: required int when requests are not provided.")
+        elif n_prompts < 1 or n_prompts > SHARED_PROMPT_DATASET_MAX_PROMPTS:
+            errors.append(
+                f"{path}.n_prompts: expected int in range 1..{SHARED_PROMPT_DATASET_MAX_PROMPTS}."
+            )
 
-            req_id = request.get("id")
-            if isinstance(req_id, str):
-                if req_id in request_ids:
-                    errors.append(f"{rpath}.id: duplicate request id '{req_id}'.")
-                request_ids.add(req_id)
-            else:
-                errors.append(f"{rpath}.id: expected string.")
+        tpath = f"{path}.request_template"
+        if not isinstance(request_template, dict):
+            errors.append(f"{tpath}: required object when requests are not provided.")
+        else:
+            t_allowed = {"kind", "sampling", "stop", "id_prefix"}
+            _reject_unknown_keys(request_template, t_allowed, path=tpath, errors=errors)
+            _require_keys(request_template, {"kind", "sampling", "stop"}, path=tpath, errors=errors)
+            kind = request_template.get("kind")
+            if kind not in {"completion", "chat"}:
+                errors.append(f"{tpath}.kind: must be 'completion' or 'chat'.")
+            id_prefix = request_template.get("id_prefix")
+            if id_prefix is not None and (not isinstance(id_prefix, str) or not id_prefix.strip()):
+                errors.append(f"{tpath}.id_prefix: expected non-empty string when provided.")
 
-            if "kind" in request and request["kind"] not in {"completion", "chat"}:
-                errors.append(f"{rpath}.kind: must be 'completion' or 'chat'.")
-
-            has_prompt = isinstance(request.get("prompt"), str)
-            has_messages = isinstance(request.get("messages"), list)
-            has_prompt_ids = isinstance(request.get("prompt_token_ids"), list)
-            if sum([has_prompt, has_messages, has_prompt_ids]) == 0:
-                errors.append(
-                    f"{rpath}: one of prompt|messages|prompt_token_ids is required."
-                )
-
-            if has_messages:
-                messages = request["messages"]
-                if any(
-                    not isinstance(msg, dict)
-                    or not isinstance(msg.get("role"), str)
-                    or not isinstance(msg.get("content"), str)
-                    for msg in messages
-                ):
-                    errors.append(f"{rpath}.messages: expected list of role/content objects.")
-
-            if has_prompt_ids:
-                prompt_ids = request["prompt_token_ids"]
-                if any(not isinstance(tok, int) for tok in prompt_ids):
-                    errors.append(f"{rpath}.prompt_token_ids: expected list[int].")
-
-            sampling = request.get("sampling")
-            if not isinstance(sampling, dict):
-                errors.append(f"{rpath}.sampling: expected object.")
-            else:
-                s_allowed = {"temperature", "top_p", "top_k", "max_tokens", "seed"}
-                _reject_unknown_keys(sampling, s_allowed, path=f"{rpath}.sampling", errors=errors)
-                _require_keys(sampling, s_allowed, path=f"{rpath}.sampling", errors=errors)
-                if "temperature" in sampling and not isinstance(sampling["temperature"], (int, float)):
-                    errors.append(f"{rpath}.sampling.temperature: expected number.")
-                if "top_p" in sampling and not isinstance(sampling["top_p"], (int, float)):
-                    errors.append(f"{rpath}.sampling.top_p: expected number.")
-                top_k = sampling.get("top_k")
-                if not (
-                    top_k is None or isinstance(top_k, int)
-                ):
-                    errors.append(f"{rpath}.sampling.top_k: expected int|null.")
-                if "max_tokens" in sampling and (
-                    not isinstance(sampling["max_tokens"], int) or sampling["max_tokens"] <= 0
-                ):
-                    errors.append(f"{rpath}.sampling.max_tokens: expected int > 0.")
-                if "seed" in sampling and not isinstance(sampling["seed"], int):
-                    errors.append(f"{rpath}.sampling.seed: expected int.")
-
-            stop = request.get("stop")
-            if not isinstance(stop, dict):
-                errors.append(f"{rpath}.stop: expected object.")
-            else:
-                stop_allowed = {"sequences", "token_ids"}
-                _reject_unknown_keys(stop, stop_allowed, path=f"{rpath}.stop", errors=errors)
-                _require_keys(stop, stop_allowed, path=f"{rpath}.stop", errors=errors)
-                sequences = stop.get("sequences")
-                token_ids = stop.get("token_ids")
-                if not isinstance(sequences, list) or any(not isinstance(item, str) for item in sequences):
-                    errors.append(f"{rpath}.stop.sequences: expected list[str].")
-                if not isinstance(token_ids, list) or any(not isinstance(item, int) for item in token_ids):
-                    errors.append(f"{rpath}.stop.token_ids: expected list[int].")
+            _validate_request_sampling(request_template.get("sampling"), path=tpath, errors=errors)
+            _validate_request_stop(request_template.get("stop"), path=tpath, errors=errors)
 
     batching = inference.get("batching")
     if not isinstance(batching, dict):
@@ -548,13 +603,18 @@ def _validate_inference(inference: dict[str, Any], errors: list[str]) -> None:
         if "fixed_request_order" in batching and not isinstance(batching["fixed_request_order"], bool):
             errors.append(f"{path}.batching.fixed_request_order: expected bool.")
 
-        if schedule == "replay" and isinstance(requests, list):
-            for idx, request in enumerate(requests):
-                arrival_ms = request.get("x_arrival_ms") if isinstance(request, dict) else None
-                if not isinstance(arrival_ms, int) or arrival_ms < 0:
-                    errors.append(
-                        f"{path}.requests[{idx}].x_arrival_ms: required int >= 0 when batching.schedule='replay'."
-                    )
+        if schedule == "replay":
+            if not isinstance(requests, list):
+                errors.append(
+                    f"{path}.batching.schedule: replay requires explicit requests with x_arrival_ms."
+                )
+            else:
+                for idx, request in enumerate(requests):
+                    arrival_ms = request.get("x_arrival_ms") if isinstance(request, dict) else None
+                    if not isinstance(arrival_ms, int) or arrival_ms < 0:
+                        errors.append(
+                            f"{path}.requests[{idx}].x_arrival_ms: required int >= 0 when batching.schedule='replay'."
+                        )
 
 
 def _validate_capture(capture: dict[str, Any], errors: list[str]) -> None:
@@ -856,8 +916,117 @@ def compute_manifest_id(manifest: dict[str, Any]) -> str:
     return canonical_sha256(_manifest_for_id(manifest))
 
 
-def compute_requests_digest(manifest: dict[str, Any]) -> str:
-    return canonical_sha256(manifest["inference"]["requests"])
+def _load_shared_prompt_dataset_conversations(
+    *,
+    prompt_dataset_path: Path | None = None,
+) -> list[list[dict[str, str]]]:
+    source_path = SHARED_PROMPT_DATASET_PATH if prompt_dataset_path is None else prompt_dataset_path
+    if not source_path.is_file():
+        raise FileNotFoundError(
+            "Shared prompt dataset is missing. "
+            f"Expected: {source_path}"
+        )
+
+    payload = _load_json_object(source_path)
+    raw_conversations = payload.get("conversations")
+    if not isinstance(raw_conversations, list) or not raw_conversations:
+        raise ValueError(
+            "Shared prompt dataset must define a non-empty 'conversations' list. "
+            f"Source: {source_path}"
+        )
+
+    conversations: list[list[dict[str, str]]] = []
+    for conv_index, raw_conversation in enumerate(raw_conversations):
+        if not isinstance(raw_conversation, list) or not raw_conversation:
+            raise ValueError(
+                "Shared prompt dataset conversation must be a non-empty message list. "
+                f"Source: {source_path}, index={conv_index}"
+            )
+        normalized: list[dict[str, str]] = []
+        for msg_index, message in enumerate(raw_conversation):
+            if (
+                not isinstance(message, dict)
+                or not isinstance(message.get("role"), str)
+                or not isinstance(message.get("content"), str)
+            ):
+                raise ValueError(
+                    "Shared prompt dataset message must contain string role/content. "
+                    f"Source: {source_path}, conversation={conv_index}, message={msg_index}"
+                )
+            normalized.append(
+                {
+                    "role": str(message["role"]),
+                    "content": str(message["content"]),
+                }
+            )
+        conversations.append(normalized)
+
+    return conversations
+
+
+def uses_shared_prompt_dataset(manifest: dict[str, Any]) -> bool:
+    inference = manifest.get("inference")
+    if not isinstance(inference, dict):
+        return False
+    return not isinstance(inference.get("requests"), list)
+
+
+def resolve_inference_requests(
+    manifest: dict[str, Any],
+    *,
+    prompt_dataset_path: Path | None = None,
+) -> list[dict[str, Any]]:
+    inference = manifest["inference"]
+    requests = inference.get("requests")
+    if isinstance(requests, list):
+        return copy.deepcopy(requests)
+
+    n_prompts = int(inference["n_prompts"])
+    if n_prompts < 1 or n_prompts > SHARED_PROMPT_DATASET_MAX_PROMPTS:
+        raise ValueError(
+            f"inference.n_prompts must be in range 1..{SHARED_PROMPT_DATASET_MAX_PROMPTS}."
+        )
+
+    template = inference["request_template"]
+    if not isinstance(template, dict):
+        raise ValueError("inference.request_template must be an object.")
+
+    conversations = _load_shared_prompt_dataset_conversations(
+        prompt_dataset_path=prompt_dataset_path,
+    )
+    if n_prompts > len(conversations):
+        raise ValueError(
+            "inference.n_prompts exceeds available conversations in shared prompt dataset "
+            f"(requested={n_prompts}, available={len(conversations)})."
+        )
+
+    id_prefix = str(template.get("id_prefix", "req-"))
+    sampling = copy.deepcopy(template["sampling"])
+    stop = copy.deepcopy(template["stop"])
+    kind = str(template["kind"])
+
+    resolved: list[dict[str, Any]] = []
+    for index, conversation in enumerate(conversations[:n_prompts], start=1):
+        resolved.append(
+            {
+                "id": f"{id_prefix}{index:04d}",
+                "kind": kind,
+                "messages": copy.deepcopy(conversation),
+                "sampling": copy.deepcopy(sampling),
+                "stop": copy.deepcopy(stop),
+            }
+        )
+    return resolved
+
+
+def compute_requests_digest(
+    manifest: dict[str, Any],
+    *,
+    prompt_dataset_path: Path | None = None,
+) -> str:
+    return canonical_sha256(
+        resolve_inference_requests(manifest, prompt_dataset_path=prompt_dataset_path)
+    )
 
 
 def compute_runtime_closure_digest(manifest: dict[str, Any]) -> str:

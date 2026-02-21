@@ -166,6 +166,16 @@ A run directory contains:
 The existing model manifests under `configs/` are spec-shaped and loadable.
 Some include placeholder digests (for example `sha256:unset`) intended for migration/bootstrap workflows; those must be replaced with real digests before lock/run in strict mode.
 
+### Shared Prompt Dataset
+
+Repository configs now use a shared prompt source instead of hardcoded per-config prompts.
+
+- source path (hardcoded): `/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json`
+- prompt count control: `inference.n_prompts` (valid range: `1..100`)
+- prompt request shape: `inference.request_template`
+
+The shared prompt dataset is pinned into lockfiles as `inference.prompt_dataset` so `run` digest verification enforces prompt immutability.
+
 ## Testing
 
 Run the test suite:

@@ -10,6 +10,7 @@ from .schema import (
     compute_requests_digest,
     create_manifest_template,
     load_manifest,
+    resolve_inference_requests,
     validate_manifest,
 )
 from .verification import verify_bundles
@@ -34,6 +35,7 @@ __all__ = [
     "load_lock",
     "load_manifest",
     "main",
+    "resolve_inference_requests",
     "resolve_lock_path",
     "validate_manifest",
     "verify_bundles",

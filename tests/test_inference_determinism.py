@@ -239,6 +239,43 @@ class TestRunOutputsAndTokenFormat(unittest.TestCase):
             bundle_payload = json.loads(Path(result["bundle_path"]).read_text(encoding="utf-8"))
             self.assertEqual(bundle_payload["artifact_integrity"]["enabled"], False)
 
+    def test_shared_prompt_dataset_mode_uses_n_prompts_and_pins_prompt_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            manifest_path = tmp_path / "manifest.json"
+
+            def mutate(manifest: dict) -> None:
+                template_request = manifest["inference"]["requests"][0]
+                manifest["inference"] = {
+                    "n_prompts": 2,
+                    "request_template": {
+                        "kind": template_request["kind"],
+                        "sampling": template_request["sampling"],
+                        "stop": template_request["stop"],
+                    },
+                    "batching": manifest["inference"]["batching"],
+                }
+
+            make_manifest(manifest_path, mutate=mutate)
+            lock_payload = lock_manifest(manifest_path)
+            self.assertIn(
+                "inference.prompt_dataset",
+                [artifact["name"] for artifact in lock_payload["artifacts"]],
+            )
+
+            manifest = workflow.load_manifest(manifest_path)
+            lock = workflow.load_lock(workflow.resolve_lock_path(manifest, manifest_path))
+            result = workflow.execute_run(
+                manifest,
+                manifest_path=manifest_path,
+                lock=lock,
+                run_dir_override=tmp_path / "run-shared-prompts",
+            )
+
+            token_payload = json.loads(Path(result["token_output_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(len(token_payload["sequences"]), 2)
+            self.assertEqual(token_payload["parameters"]["n_prompts"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

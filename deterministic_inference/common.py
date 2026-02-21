@@ -14,6 +14,10 @@ MANIFEST_KIND = "vllm.deterministic_inference_manifest"
 LOCK_KIND = "vllm.deterministic_inference_lock"
 BUNDLE_KIND = "vllm.deterministic_run_bundle"
 VERIFY_REPORT_KIND = "vllm.determinism_verify_report"
+SHARED_PROMPT_DATASET_PATH = Path(
+    "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json"
+)
+SHARED_PROMPT_DATASET_MAX_PROMPTS = 100
 
 _TOKEN_ID_RE = re.compile(r"^token_id:(-?\d+)$")
 _SHA256_DIGEST_RE = re.compile(r"^(?:sha256:)?[0-9a-f]{64}$")
@@ -149,4 +153,3 @@ def _prompt_token_matrix_hash(prompt_token_ids_list: list[list[int]]) -> str:
     return hashlib.sha256(
         json.dumps(prompt_token_ids_list, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
-

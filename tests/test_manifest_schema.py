@@ -92,6 +92,41 @@ class TestManifestSchema(unittest.TestCase):
             manifest["artifacts"]["lockfile"] = lock_payload
             workflow.validate_manifest(manifest)
 
+    def test_shared_prompt_dataset_mode_is_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = Path(tmpdir) / "manifest.json"
+            manifest = make_manifest(manifest_path)
+            template_request = manifest["inference"]["requests"][0]
+            batching = manifest["inference"]["batching"]
+            manifest["inference"] = {
+                "n_prompts": 5,
+                "request_template": {
+                    "kind": template_request["kind"],
+                    "sampling": template_request["sampling"],
+                    "stop": template_request["stop"],
+                },
+                "batching": batching,
+            }
+            workflow.validate_manifest(manifest)
+
+    def test_shared_prompt_dataset_mode_rejects_invalid_n_prompts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = Path(tmpdir) / "manifest.json"
+            manifest = make_manifest(manifest_path)
+            template_request = manifest["inference"]["requests"][0]
+            batching = manifest["inference"]["batching"]
+            manifest["inference"] = {
+                "n_prompts": 101,
+                "request_template": {
+                    "kind": template_request["kind"],
+                    "sampling": template_request["sampling"],
+                    "stop": template_request["stop"],
+                },
+                "batching": batching,
+            }
+            with self.assertRaises(workflow.ManifestValidationError):
+                workflow.validate_manifest(manifest)
+
 
 if __name__ == "__main__":
     unittest.main()

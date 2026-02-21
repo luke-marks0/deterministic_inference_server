@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "8d8a917f51ae1f7a68504dff56ac2ca9fc4a9078eedb543e6723c98549e303aa",
-  "generated_at": "2026-02-21T15:37:42Z",
+  "manifest_id": "af67abe10f6e918616eed4682a0b923e0b43ddcc1519ce2e96fdee4e0956834d",
+  "generated_at": "2026-02-21T18:10:33Z",
   "lock_algorithm": "sha256",
   "runtime_closure_digest": "d6a31f9f110fb26fef255c14283f6847549b90ee9e0ab2d8f280a352ef1ea4b6",
   "artifacts": [
@@ -134,8 +134,17 @@
       "retrieval": {
         "version": "2.x"
       }
+    },
+    {
+      "name": "inference.prompt_dataset",
+      "path": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json",
+      "digest": "20e27e9c4367c25954f7975669dd6dc1c43ebbd8148f6d08136a3833c793e082",
+      "retrieval": {
+        "type": "local_file",
+        "local_file": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json"
+      }
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "9d73fe5f41a7b815218a8accc43b1e741e0349835489ab09c79a2e3fbcd257a0"
+  "lock_id": "0f27112266a86d26b14096da1287f283c4767776c405295b48cf0a055ec18543"
 }

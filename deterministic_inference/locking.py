@@ -4,8 +4,18 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-from .common import LOCK_KIND, SCHEMA_VERSION, _load_json_object, _normalize_real_digest, _repo_root, _sha256_file, canonical_sha256, utc_now_iso
-from .schema import compute_manifest_id, compute_runtime_closure_digest
+from .common import (
+    LOCK_KIND,
+    SCHEMA_VERSION,
+    SHARED_PROMPT_DATASET_PATH,
+    _load_json_object,
+    _normalize_real_digest,
+    _repo_root,
+    _sha256_file,
+    canonical_sha256,
+    utc_now_iso,
+)
+from .schema import compute_manifest_id, compute_runtime_closure_digest, uses_shared_prompt_dataset
 
 def resolve_lock_path(manifest: dict[str, Any], manifest_path: Path) -> Path:
     lockfile = manifest["artifacts"]["lockfile"]
@@ -330,6 +340,24 @@ def resolve_artifacts(manifest: dict[str, Any], manifest_path: Path) -> list[dic
                 source_path=lib_name,
                 digest=digest,
                 retrieval={"version": lib_payload.get("version", "")},
+            )
+        )
+
+    if uses_shared_prompt_dataset(manifest):
+        if not SHARED_PROMPT_DATASET_PATH.is_file():
+            raise FileNotFoundError(
+                "Shared prompt dataset is missing while manifest uses inference.n_prompts/request_template.\n"
+                f"Expected: {SHARED_PROMPT_DATASET_PATH}"
+            )
+        artifacts.append(
+            _artifact_entry(
+                name="inference.prompt_dataset",
+                source_path=str(SHARED_PROMPT_DATASET_PATH),
+                digest=_sha256_file(SHARED_PROMPT_DATASET_PATH),
+                retrieval={
+                    "type": "local_file",
+                    "local_file": str(SHARED_PROMPT_DATASET_PATH),
+                },
             )
         )
 

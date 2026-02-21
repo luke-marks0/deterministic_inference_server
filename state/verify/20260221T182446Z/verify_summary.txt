@@ -1,0 +1,11 @@
+verify_report: /home/ubuntu/deterministic_inference_server/state/verify/20260221T182446Z/verify_report.json
+bundle_a: /home/ubuntu/deterministic_inference_server/runs/gpt-oss-20b/f60045bca77ad976a1b56c1f9fd6b3fef81139f2d90ac0b445bb39b734824373/bundle.json
+bundle_b: /home/ubuntu/deterministic_inference_server/runs/gpt-oss-20b/6544fe2cf9a8b6345fe3226f97ee8006f8ddf35b1733647eca1dfb12466c3e10/bundle.json
+determinism_grade: mismatch_outputs
+tokens_exact_match: False
+first_divergence: {'request_id': 23, 'token_step': 3, 'field': 'output_token_ids', 'token_a': 72, 'token_b': 10}
+runtime_closure_digest_match: True
+manifest_id_match: True
+lock_id_match: True
+token_compare_rule_match: True
+batch_trace_exact_match: True

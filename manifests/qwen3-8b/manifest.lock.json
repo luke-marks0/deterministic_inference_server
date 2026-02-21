@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "f8b1bda4e8681a7d55dc7b1996c8ec982e4229ca79e53a44e29b0916a84e0680",
-  "generated_at": "2026-02-21T12:58:34Z",
+  "manifest_id": "1b1f0923de56bac75342975c8b4e464072ff33761537abe810afb88fc71fdecb",
+  "generated_at": "2026-02-21T18:34:26Z",
   "lock_algorithm": "sha256",
-  "runtime_closure_digest": "dfbe232843012e157515137df3433ceb5ca7818388a10408da028fbb5e3e392f",
+  "runtime_closure_digest": "65af38c93634531622a65ebee6a09a22fd3152d92eaf3c6c0215646508fcf8e0",
   "artifacts": [
     {
       "name": "model.weight",
       "path": "model.safetensors",
-      "digest": "sha256:unset",
+      "digest": "6d67fd12dafdb9d928b5da454384bfbfd0095e54afa1b621ff0208c995940e11",
       "retrieval": {
         "type": "huggingface",
         "repo": "Qwen/Qwen3-8B",
@@ -19,7 +19,7 @@
     {
       "name": "model.tokenizer",
       "path": "tokenizer.json",
-      "digest": "sha256:unset",
+      "digest": "bcc429baf1c5e496f99aaf8c4454e619ac8f835b01b38d5888a384e8e35e5295",
       "retrieval": {
         "type": "huggingface",
         "repo": "Qwen/Qwen3-8B",
@@ -29,7 +29,7 @@
     {
       "name": "model.tokenizer",
       "path": "tokenizer_config.json",
-      "digest": "sha256:unset",
+      "digest": "4a23d8e3b29e162601639a8ff4c4c06b764d3ed96bd6b43bdef6c9a141d08eb8",
       "retrieval": {
         "type": "huggingface",
         "repo": "Qwen/Qwen3-8B",
@@ -39,7 +39,7 @@
     {
       "name": "model.tokenizer",
       "path": "special_tokens_map.json",
-      "digest": "sha256:unset",
+      "digest": "81dfae9254a822e5ff39be6799fe50544f8f8e206b9007df2c93a12e015ff5f2",
       "retrieval": {
         "type": "huggingface",
         "repo": "Qwen/Qwen3-8B",
@@ -49,7 +49,7 @@
     {
       "name": "model.config",
       "path": "config.json",
-      "digest": "sha256:unset",
+      "digest": "808d3c873f406c575a82e048e2b733f45774acfbb2e9945cd59d0af2ee0c767d",
       "retrieval": {
         "type": "huggingface",
         "repo": "Qwen/Qwen3-8B",
@@ -59,7 +59,7 @@
     {
       "name": "model.config",
       "path": "generation_config.json",
-      "digest": "sha256:unset",
+      "digest": "598cf408684bec75e680bba16fae37cbb0e9ce77c5810cf21e176e167e232686",
       "retrieval": {
         "type": "huggingface",
         "repo": "Qwen/Qwen3-8B",
@@ -69,7 +69,7 @@
     {
       "name": "model.chat_template",
       "path": "chat_template.jinja",
-      "digest": "sha256:unset",
+      "digest": "fd3b959fe7303d318ca11541d96ab21def8218a1a4c9a9decbe7e53bb89aaebf",
       "retrieval": {
         "type": "huggingface",
         "repo": "Qwen/Qwen3-8B",
@@ -79,34 +79,34 @@
     {
       "name": "python.package.vllm",
       "path": "",
-      "digest": "sha256:unset",
+      "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b",
       "retrieval": {
         "type": "wheel",
-        "digest": "sha256:unset"
+        "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
       }
     },
     {
       "name": "python.package.torch",
       "path": "",
-      "digest": "sha256:unset",
+      "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937",
       "retrieval": {
         "type": "wheel",
-        "digest": "sha256:unset"
+        "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
       }
     },
     {
       "name": "python.package.triton",
       "path": "",
-      "digest": "sha256:unset",
+      "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3",
       "retrieval": {
         "type": "wheel",
-        "digest": "sha256:unset"
+        "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
       }
     },
     {
       "name": "cuda.userspace.cuda_toolkit",
       "path": "cuda_toolkit",
-      "digest": "sha256:unset",
+      "digest": "621e155eb77a75e6f2c4d4cf65177ffd2aa9a2625712443bc35657dc48bc141e",
       "retrieval": {
         "version": "12.x"
       }
@@ -114,7 +114,7 @@
     {
       "name": "cuda.userspace.cublas",
       "path": "cublas",
-      "digest": "sha256:unset",
+      "digest": "7b42da2c381b1945ab964ab47d5e3eb55c68e5bfe9713adc2a34ff8ad58f3827",
       "retrieval": {
         "version": "12.x"
       }
@@ -122,7 +122,7 @@
     {
       "name": "cuda.userspace.cudnn",
       "path": "cudnn",
-      "digest": "sha256:unset",
+      "digest": "1218bedb143a5ce463ea551e7530e9c3dd803364b130439b4c182e1aaa5dfa4d",
       "retrieval": {
         "version": "9.x"
       }
@@ -130,12 +130,21 @@
     {
       "name": "cuda.userspace.nccl",
       "path": "nccl",
-      "digest": "sha256:unset",
+      "digest": "c12e64d2c825bbe6b87b17a77c8ecd78e9bdc7126a38867a878e690478ca56e0",
       "retrieval": {
         "version": "2.x"
+      }
+    },
+    {
+      "name": "inference.prompt_dataset",
+      "path": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json",
+      "digest": "20e27e9c4367c25954f7975669dd6dc1c43ebbd8148f6d08136a3833c793e082",
+      "retrieval": {
+        "type": "local_file",
+        "local_file": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json"
       }
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "542dadf8f735d020b257991ad9a8f9c839ef7ec23a107302db2747c1fff163e8"
+  "lock_id": "d5bc5837e75c15775d5303d5e540ffd5cbf372fc11d87349b115c9997b81e313"
 }

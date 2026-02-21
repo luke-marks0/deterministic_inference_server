@@ -7,7 +7,7 @@ from typing import Any
 
 from .common import BUNDLE_KIND, LOCK_KIND, SCHEMA_VERSION, VERIFY_REPORT_KIND, _load_json_object, _write_json, utc_now_iso
 from .locking import _validate_lock_payload
-from .schema import MANIFEST_KIND, compute_manifest_id, load_manifest, validate_manifest
+from .schema import MANIFEST_KIND, compute_manifest_id, load_manifest, resolve_inference_requests, validate_manifest
 
 def _resolve_bundle_path(path: Path) -> Path:
     if path.is_dir():
@@ -343,12 +343,13 @@ def inspect_payload(path: Path) -> dict[str, Any]:
     if isinstance(payload.get("x_base_manifest"), str):
         manifest = load_manifest(path)
         lock_ref = manifest["artifacts"]["lockfile"]
+        request_count = len(resolve_inference_requests(manifest))
         return {
             "type": "manifest",
             "schema_version": manifest["schema_version"],
             "manifest_id": compute_manifest_id(manifest),
             "lockfile": "<embedded>" if isinstance(lock_ref, dict) else lock_ref,
-            "request_count": len(manifest["inference"]["requests"]),
+            "request_count": request_count,
             "batching": manifest["inference"]["batching"],
         }
 
@@ -356,12 +357,13 @@ def inspect_payload(path: Path) -> dict[str, Any]:
     if kind == MANIFEST_KIND:
         validate_manifest(payload)
         lock_ref = payload["artifacts"]["lockfile"]
+        request_count = len(resolve_inference_requests(payload))
         return {
             "type": "manifest",
             "schema_version": payload["schema_version"],
             "manifest_id": compute_manifest_id(payload),
             "lockfile": "<embedded>" if isinstance(lock_ref, dict) else lock_ref,
-            "request_count": len(payload["inference"]["requests"]),
+            "request_count": request_count,
             "batching": payload["inference"]["batching"],
         }
 

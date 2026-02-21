@@ -17,9 +17,20 @@ from typing import Any
 
 from .common import BUNDLE_KIND, SCHEMA_VERSION, _prompt_token_matrix_hash, _repo_root, _token_ids_hash, _write_json, canonical_sha256, utc_now_iso
 from .locking import resolve_lock_path, verify_lock_artifact_integrity
-from .schema import compute_manifest_id, compute_requests_digest, compute_runtime_closure_digest
+from .schema import (
+    compute_manifest_id,
+    compute_requests_digest,
+    compute_runtime_closure_digest,
+    resolve_inference_requests,
+    uses_shared_prompt_dataset,
+)
 
 _TOKEN_ID_RE = re.compile(r"^token_id:(-?\d+)$")
+
+try:
+    from tqdm.auto import tqdm as _tqdm  # type: ignore
+except Exception:  # pragma: no cover - optional dependency
+    _tqdm = None
 
 @dataclass(frozen=True)
 class HardwareConformance:
@@ -206,8 +217,11 @@ def _apply_runtime_environment(manifest: dict[str, Any]) -> dict[str, str]:
     return applied
 
 
-def _apply_runtime_determinism_controls(manifest: dict[str, Any]) -> dict[str, Any]:
-    requests = manifest["inference"]["requests"]
+def _apply_runtime_determinism_controls(
+    manifest: dict[str, Any],
+    *,
+    requests: list[dict[str, Any]],
+) -> dict[str, Any]:
     seed = int(requests[0]["sampling"]["seed"])
     policy = str(manifest["runtime"]["execution"]["deterministic_failure_policy"])
     warnings: list[str] = []
@@ -570,6 +584,33 @@ def _decode_token_ids(token_ids: list[int]) -> str:
     return " ".join(f"token_id:{token}" for token in token_ids)
 
 
+def _shared_prompt_dataset_path_from_lock(lock: dict[str, Any]) -> Path:
+    artifacts = lock.get("artifacts")
+    if not isinstance(artifacts, list):
+        raise ValueError("lock.artifacts: expected list.")
+
+    for artifact in artifacts:
+        if not isinstance(artifact, dict):
+            continue
+        if artifact.get("name") != "inference.prompt_dataset":
+            continue
+
+        path_value = artifact.get("path")
+        if isinstance(path_value, str) and path_value.strip():
+            return Path(path_value)
+
+        retrieval = artifact.get("retrieval")
+        if isinstance(retrieval, dict):
+            local_file = retrieval.get("local_file")
+            if isinstance(local_file, str) and local_file.strip():
+                return Path(local_file)
+        break
+
+    raise ValueError(
+        "Lockfile is missing required artifact 'inference.prompt_dataset' for shared prompt mode."
+    )
+
+
 def execute_run(
     manifest: dict[str, Any],
     *,
@@ -596,8 +637,20 @@ def execute_run(
             "skipped": [{"reason": "disabled_by_flag"}],
         }
 
+    prompt_dataset_path: Path | None = None
+    if uses_shared_prompt_dataset(manifest):
+        prompt_dataset_path = _shared_prompt_dataset_path_from_lock(lock)
+
+    requests = resolve_inference_requests(
+        manifest,
+        prompt_dataset_path=prompt_dataset_path,
+    )
+
     applied_environment = _apply_runtime_environment(manifest)
-    determinism_controls = _apply_runtime_determinism_controls(manifest)
+    determinism_controls = _apply_runtime_determinism_controls(
+        manifest,
+        requests=requests,
+    )
     software_metadata = _probe_software_metadata()
 
     runtime_digest = compute_runtime_closure_digest(manifest)
@@ -617,7 +670,6 @@ def execute_run(
             f"{joined}"
         )
 
-    requests = manifest["inference"]["requests"]
     batching = manifest["inference"]["batching"]
     schedule = str(batching["schedule"])
     mode = str(manifest["vllm"]["mode"])
@@ -671,62 +723,76 @@ def execute_run(
     total_completion_tokens = 0
     batch_steps: list[dict[str, Any]] = []
     max_batched_tokens = int(batching["max_num_batched_tokens"])
-
-    for batch_start in range(0, len(ordered_requests), batch_size):
-        batch = ordered_requests[batch_start : batch_start + batch_size]
-        if len(batch) != batch_size:
-            raise ValueError("Fixed batching policy requires exact batch size for every step.")
-
-        request_ids: list[str] = []
-        prompt_token_counts: list[int] = []
-        max_tokens_per_request: list[int] = []
-        replay_arrival_ms: list[int] = []
-        batch_token_budget = 0
-
-        for request in batch:
-            prompt_ids = _request_prompt_token_ids(request)
-            request_max_tokens = int(request["sampling"]["max_tokens"])
-            batch_token_budget += len(prompt_ids) + request_max_tokens
-            request_ids.append(str(request["id"]))
-            prompt_token_counts.append(len(prompt_ids))
-            max_tokens_per_request.append(request_max_tokens)
-            if schedule == "replay":
-                replay_arrival_ms.append(int(request["x_arrival_ms"]))
-
-        if batch_token_budget > max_batched_tokens:
-            raise ValueError(
-                "Batch token budget exceeded max_num_batched_tokens "
-                f"(observed={batch_token_budget}, limit={max_batched_tokens})."
-            )
-
-        batch_steps.append(
-            {
-                "step_index": len(batch_steps),
-                "batch_size": len(batch),
-                "request_ids": request_ids,
-                "prompt_token_counts": prompt_token_counts,
-                "max_tokens_per_request": max_tokens_per_request,
-                "batch_token_budget": batch_token_budget,
-                "replay_arrival_ms": replay_arrival_ms,
-            }
+    progress = None
+    if _tqdm is not None:
+        progress = _tqdm(
+            total=len(ordered_requests),
+            desc="Generating",
+            unit="req",
+            disable=not sys.stderr.isatty(),
         )
 
-        for request in batch:
-            prompt_token_ids = _request_prompt_token_ids(request)
-            output_token_ids, completion_count = _generate_tokens_for_request(
-                request=request,
-                prompt_token_ids=prompt_token_ids,
-                manifest=manifest,
-            )
-            sequences.append(
+    try:
+        for batch_start in range(0, len(ordered_requests), batch_size):
+            batch = ordered_requests[batch_start : batch_start + batch_size]
+            if len(batch) != batch_size:
+                raise ValueError("Fixed batching policy requires exact batch size for every step.")
+
+            request_ids: list[str] = []
+            prompt_token_counts: list[int] = []
+            max_tokens_per_request: list[int] = []
+            replay_arrival_ms: list[int] = []
+            batch_token_budget = 0
+
+            for request in batch:
+                prompt_ids = _request_prompt_token_ids(request)
+                request_max_tokens = int(request["sampling"]["max_tokens"])
+                batch_token_budget += len(prompt_ids) + request_max_tokens
+                request_ids.append(str(request["id"]))
+                prompt_token_counts.append(len(prompt_ids))
+                max_tokens_per_request.append(request_max_tokens)
+                if schedule == "replay":
+                    replay_arrival_ms.append(int(request["x_arrival_ms"]))
+
+            if batch_token_budget > max_batched_tokens:
+                raise ValueError(
+                    "Batch token budget exceeded max_num_batched_tokens "
+                    f"(observed={batch_token_budget}, limit={max_batched_tokens})."
+                )
+
+            batch_steps.append(
                 {
-                    "prompt_token_ids": prompt_token_ids,
-                    "output_token_ids": output_token_ids,
+                    "step_index": len(batch_steps),
+                    "batch_size": len(batch),
+                    "request_ids": request_ids,
+                    "prompt_token_counts": prompt_token_counts,
+                    "max_tokens_per_request": max_tokens_per_request,
+                    "batch_token_budget": batch_token_budget,
+                    "replay_arrival_ms": replay_arrival_ms,
                 }
             )
-            conversations.append(_request_messages(request))
-            decoded_outputs.append(_decode_token_ids(output_token_ids))
-            total_completion_tokens += int(completion_count)
+
+            for request in batch:
+                prompt_token_ids = _request_prompt_token_ids(request)
+                output_token_ids, completion_count = _generate_tokens_for_request(
+                    request=request,
+                    prompt_token_ids=prompt_token_ids,
+                    manifest=manifest,
+                )
+                sequences.append(
+                    {
+                        "prompt_token_ids": prompt_token_ids,
+                        "output_token_ids": output_token_ids,
+                    }
+                )
+                conversations.append(_request_messages(request))
+                decoded_outputs.append(_decode_token_ids(output_token_ids))
+                total_completion_tokens += int(completion_count)
+                if progress is not None:
+                    progress.update(1)
+    finally:
+        if progress is not None:
+            progress.close()
 
     prompt_matrix_hash = _prompt_token_matrix_hash(
         [sequence["prompt_token_ids"] for sequence in sequences]
@@ -734,7 +800,10 @@ def execute_run(
 
     manifest_id = compute_manifest_id(manifest)
     lock_id = str(lock["lock_id"])
-    requests_digest = compute_requests_digest(manifest)
+    requests_digest = compute_requests_digest(
+        manifest,
+        prompt_dataset_path=prompt_dataset_path,
+    )
     hardware_fingerprint_digest = canonical_sha256(hardware_fingerprint)
     run_id = hashlib.sha256(
         f"{manifest_id}{lock_id}{requests_digest}{hardware_fingerprint_digest}".encode("utf-8")

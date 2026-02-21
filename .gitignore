@@ -5,10 +5,10 @@ __pycache__/
 *.swp
 
 state/hf/
-
 state/generated/
-
 state/evals/
 
 !manifests/
 !manifests/**
+
+runs/

@@ -46,6 +46,8 @@ class TestRunIdAndConfigInheritance(unittest.TestCase):
         self.assertEqual(manifest["runtime"]["execution"]["backend"], "openai_compatible")
         self.assertEqual(manifest["model"]["weights"]["source"]["repo"], "Qwen/Qwen3-8B")
         self.assertEqual(manifest["inference"]["batching"]["policy"], "fixed")
+        self.assertEqual(manifest["inference"]["n_prompts"], 100)
+        self.assertNotIn("requests", manifest["inference"])
 
 
 if __name__ == "__main__":

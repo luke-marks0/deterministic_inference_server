@@ -23,6 +23,19 @@ def _parse_output_path(raw: str) -> Path:
     return _parse_manifest_path(raw)
 
 
+def _most_recent_bundle_paths(*, count: int = 2) -> list[Path]:
+    runs_root = (_repo_root() / "runs").resolve()
+    if not runs_root.is_dir():
+        return []
+
+    bundles = sorted(
+        runs_root.glob("*/*/bundle.json"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    return bundles[:count]
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Spec-first deterministic vLLM workflow.",
@@ -100,8 +113,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
 
     verify_parser = subparsers.add_parser("verify", help="Verify two run bundles.")
-    verify_parser.add_argument("--bundle-a", required=True, help="Bundle A path (file or run dir).")
-    verify_parser.add_argument("--bundle-b", required=True, help="Bundle B path (file or run dir).")
+    verify_parser.add_argument("--bundle-a", default="", help="Bundle A path (file or run dir).")
+    verify_parser.add_argument("--bundle-b", default="", help="Bundle B path (file or run dir).")
     verify_parser.add_argument("--output-dir", default="", help="Output directory for verify report.")
 
     bundle_parser = subparsers.add_parser("bundle", help="Archive a run directory.")
@@ -327,8 +340,28 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "verify":
-        bundle_a = _parse_output_path(args.bundle_a)
-        bundle_b = _parse_output_path(args.bundle_b)
+        bundle_a_raw = str(args.bundle_a).strip()
+        bundle_b_raw = str(args.bundle_b).strip()
+
+        if bundle_a_raw and bundle_b_raw:
+            bundle_a = _parse_output_path(bundle_a_raw)
+            bundle_b = _parse_output_path(bundle_b_raw)
+        elif not bundle_a_raw and not bundle_b_raw:
+            recent = _most_recent_bundle_paths(count=2)
+            if len(recent) < 2:
+                raise SystemExit(
+                    "Unable to auto-select bundles: need at least two run bundles under "
+                    f"{(_repo_root() / 'runs').resolve()}.\n"
+                    "Provide --bundle-a and --bundle-b explicitly."
+                )
+            bundle_a, bundle_b = recent[0], recent[1]
+            print(f"Auto-selected bundle-a: {bundle_a}")
+            print(f"Auto-selected bundle-b: {bundle_b}")
+        else:
+            raise SystemExit(
+                "Provide both --bundle-a and --bundle-b, or omit both to auto-select the two most recent runs."
+            )
+
         if args.output_dir:
             output_dir = _parse_output_path(args.output_dir)
         else:

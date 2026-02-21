@@ -5,6 +5,7 @@ import platform
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import deterministic_inference as workflow
 
@@ -244,6 +245,53 @@ class TestLockBuildAndCli(unittest.TestCase):
             self.assertEqual(run_rc, 0)
             bundle = json.loads((run_dir / "bundle.json").read_text(encoding="utf-8"))
             self.assertEqual(bundle["artifact_integrity"]["enabled"], False)
+
+    def test_verify_auto_selects_two_most_recent_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            manifest_path = tmp_path / "manifest.json"
+            make_manifest(manifest_path)
+            lock_manifest(manifest_path)
+
+            manifest = workflow.load_manifest(manifest_path)
+            lock = workflow.load_lock(workflow.resolve_lock_path(manifest, manifest_path))
+
+            run_a_dir = tmp_path / "runs" / "auto" / "run-a"
+            run_b_dir = tmp_path / "runs" / "auto" / "run-b"
+            run_a = workflow.execute_run(
+                manifest,
+                manifest_path=manifest_path,
+                lock=lock,
+                run_dir_override=run_a_dir,
+            )
+            run_b = workflow.execute_run(
+                manifest,
+                manifest_path=manifest_path,
+                lock=lock,
+                run_dir_override=run_b_dir,
+            )
+
+            report_dir = tmp_path / "verify-auto"
+            with mock.patch("deterministic_inference.cli._repo_root", return_value=tmp_path):
+                verify_rc = workflow.main(
+                    [
+                        "verify",
+                        "--output-dir",
+                        str(report_dir),
+                    ]
+                )
+
+            self.assertEqual(verify_rc, 0)
+            report = json.loads((report_dir / "verify_report.json").read_text(encoding="utf-8"))
+            selected = {
+                str(report["bundle_a"]["path"]),
+                str(report["bundle_b"]["path"]),
+            }
+            expected = {
+                str(run_a["bundle_path"]),
+                str(run_b["bundle_path"]),
+            }
+            self.assertEqual(selected, expected)
 
 
 if __name__ == "__main__":

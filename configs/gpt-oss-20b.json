@@ -195,24 +195,21 @@
     }
   },
   "inference": {
-    "requests": [
-      {
-        "id": "req-0001",
-        "kind": "completion",
-        "prompt": "Write exactly one sentence that says the server is healthy.",
-        "sampling": {
-          "temperature": 0.0,
-          "top_p": 0.95,
-          "top_k": 50,
-          "max_tokens": 32,
-          "seed": 424242
-        },
-        "stop": {
-          "sequences": [],
-          "token_ids": []
-        }
+    "n_prompts": 100,
+    "request_template": {
+      "kind": "completion",
+      "sampling": {
+        "temperature": 0.0,
+        "top_p": 0.95,
+        "top_k": 50,
+        "max_tokens": 200,
+        "seed": 424242
+      },
+      "stop": {
+        "sequences": [],
+        "token_ids": []
       }
-    ],
+    },
     "batching": {
       "policy": "fixed",
       "schedule": "batch_invariant",
