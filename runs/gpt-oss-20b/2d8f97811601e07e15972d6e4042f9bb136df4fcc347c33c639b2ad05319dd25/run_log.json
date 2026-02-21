@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "run_type": "determinism_log",
+  "created_at_utc": "2026-02-21T15:37:51Z",
+  "profile_config": "/home/ubuntu/deterministic_inference_server/configs/gpt-oss-20b.json",
+  "generation_lock_manifest": "/home/ubuntu/deterministic_inference_server/manifests/gpt-oss-20b/manifest.lock.json",
+  "generation_lock_manifest_sha256": "9d73fe5f41a7b815218a8accc43b1e741e0349835489ab09c79a2e3fbcd257a0",
+  "source_reference_bundle": "",
+  "source_reference_bundle_sha256": "",
+  "source_reference_model": "openai/gpt-oss-20b",
+  "source_reference_prompt_token_ids_sha256": "b2b85f4da48e481a69f54311899b1a61bdae2a88720bafc5502fbf2df2040b20",
+  "source_reference_has_pretokenized_prompts": false,
+  "tokenizer_source": "openai/gpt-oss-20b",
+  "model": "openai/gpt-oss-20b",
+  "served_model": "openai/gpt-oss-20b",
+  "base_url": "http://127.0.0.1:8002",
+  "parameters": {
+    "n_prompts": 1,
+    "max_tokens": 32,
+    "seed": 424242,
+    "temperature": 0.0,
+    "top_k": 50,
+    "top_p": 0.95,
+    "concurrency": 1,
+    "timeout_seconds": 600,
+    "tokenizer_revision": "6cee5e81ee83917806bbde320786a8fb61efebee",
+    "prompt_token_ids_sha256": "b2b85f4da48e481a69f54311899b1a61bdae2a88720bafc5502fbf2df2040b20",
+    "generation_lock_manifest_sha256": "9d73fe5f41a7b815218a8accc43b1e741e0349835489ab09c79a2e3fbcd257a0"
+  },
+  "summary": {
+    "prompt_count": 1,
+    "completion_tokens": 32,
+    "elapsed_s": 0.0
+  },
+  "runtime_environment": {
+    "PYTHONHASHSEED": "0",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "VLLM_BATCH_INVARIANT": "1",
+    "VLLM_ENABLE_V1_MULTIPROCESSING": "0",
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "TZ": "UTC"
+  },
+  "determinism_controls": {
+    "seed": 424242,
+    "deterministic_failure_policy": "warn_only",
+    "python_random_seeded": true,
+    "numpy": {
+      "available": true,
+      "seeded": true,
+      "version": "2.2.6"
+    },
+    "torch": {
+      "available": false,
+      "seeded": false,
+      "error": "No module named 'torch'"
+    },
+    "warnings": [
+      "Torch controls unavailable: No module named 'torch'"
+    ]
+  },
+  "artifact_integrity": {
+    "enabled": true,
+    "checked_count": 0,
+    "skipped_count": 14,
+    "failure_count": 0,
+    "checked": [],
+    "skipped": [
+      {
+        "index": 0,
+        "name": "model.weight",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 1,
+        "name": "model.tokenizer",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 2,
+        "name": "model.tokenizer",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 3,
+        "name": "model.tokenizer",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 4,
+        "name": "model.config",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 5,
+        "name": "model.config",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 6,
+        "name": "model.chat_template",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 7,
+        "name": "python.package.vllm",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 8,
+        "name": "python.package.torch",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 9,
+        "name": "python.package.triton",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 10,
+        "name": "cuda.userspace.cuda_toolkit",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 11,
+        "name": "cuda.userspace.cublas",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 12,
+        "name": "cuda.userspace.cudnn",
+        "reason": "no_explicit_local_path"
+      },
+      {
+        "index": 13,
+        "name": "cuda.userspace.nccl",
+        "reason": "no_explicit_local_path"
+      }
+    ]
+  },
+  "batch_trace": {
+    "policy": "fixed",
+    "schedule": "batch_invariant",
+    "max_num_seqs": 1,
+    "max_num_batched_tokens": 4096,
+    "steps": [
+      {
+        "step_index": 0,
+        "batch_size": 1,
+        "request_ids": [
+          "req-0001"
+        ],
+        "prompt_token_counts": [
+          59
+        ],
+        "max_tokens_per_request": [
+          32
+        ],
+        "batch_token_budget": 91,
+        "replay_arrival_ms": []
+      }
+    ]
+  },
+  "records": [
+    {
+      "prompt_index": 0,
+      "prompt_token_ids": [
+        87,
+        114,
+        105,
+        116,
+        101,
+        32,
+        101,
+        120,
+        97,
+        99,
+        116,
+        108,
+        121,
+        32,
+        111,
+        110,
+        101,
+        32,
+        115,
+        101,
+        110,
+        116,
+        101,
+        110,
+        99,
+        101,
+        32,
+        116,
+        104,
+        97,
+        116,
+        32,
+        115,
+        97,
+        121,
+        115,
+        32,
+        116,
+        104,
+        101,
+        32,
+        115,
+        101,
+        114,
+        118,
+        101,
+        114,
+        32,
+        105,
+        115,
+        32,
+        104,
+        101,
+        97,
+        108,
+        116,
+        104,
+        121,
+        46
+      ],
+      "prompt_token_count": 59,
+      "prompt_token_sha256": "bd5f736223827a7585b1b28ccd64801b2ab89311ea502aafba644c1e1b87574b",
+      "output_token_ids": [
+        198,
+        26178,
+        38193,
+        2500,
+        382,
+        261,
+        1621,
+        328,
+        9862,
+        13,
+        1416,
+        1309,
+        316,
+        18135,
+        480,
+        472,
+        261,
+        3176,
+        13,
+        623,
+        26628,
+        25,
+        392,
+        976,
+        6052,
+        382,
+        261,
+        2195,
+        484,
+        382,
+        220,
+        19
+      ],
+      "output_token_count": 32,
+      "output_token_sha256": "b925942560ed75ec02d02835c4e3ad6f9dbe7786af08255b732eaa8df263043a"
+    }
+  ]
+}

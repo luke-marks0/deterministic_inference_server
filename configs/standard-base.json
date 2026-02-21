@@ -1,63 +1,258 @@
 {
   "schema_version": 1,
-  "profile": {
-    "id": "base-profile",
-    "description": "Shared deterministic defaults for model profiles."
+  "kind": "vllm.deterministic_inference_manifest",
+  "metadata": {
+    "name": "standard-base",
+    "description": "Shared deterministic defaults for spec-aligned vLLM manifests.",
+    "created_at": "2026-02-21T00:00:00Z",
+    "owners": [
+      "ml-platform@example.com"
+    ]
+  },
+  "determinism": {
+    "strict_hardware": false,
+    "compare": {
+      "tokens": {
+        "rule": "exact"
+      },
+      "logits": {
+        "rule": "exact"
+      },
+      "activations": {
+        "rule": "absrel",
+        "atol": 0.0,
+        "rtol": 0.0
+      },
+      "engine_trace": {
+        "rule": "exact"
+      }
+    }
+  },
+  "hardware": {
+    "constraints": {
+      "accelerator_vendor": "nvidia",
+      "gpu_arch_min_cc": "8.0",
+      "allowed_gpu_models": []
+    },
+    "record": {
+      "capture_collect_env": true,
+      "capture_nvidia_smi": true,
+      "capture_driver_versions": true,
+      "capture_pcie_topology": false
+    }
+  },
+  "artifacts": {
+    "store": {
+      "type": "cas",
+      "path": "state/store"
+    },
+    "lockfile": "manifests/standard-base/manifest.lock.json"
+  },
+  "software_stack": {
+    "python": {
+      "version": "3.11.8",
+      "packages": [
+        {
+          "name": "vllm",
+          "source": {
+            "type": "wheel",
+            "digest": "sha256:unset"
+          }
+        },
+        {
+          "name": "torch",
+          "source": {
+            "type": "wheel",
+            "digest": "sha256:unset"
+          }
+        },
+        {
+          "name": "triton",
+          "source": {
+            "type": "wheel",
+            "digest": "sha256:unset"
+          }
+        }
+      ]
+    },
+    "compiled_extensions": []
+  },
+  "cuda_stack": {
+    "userspace": {
+      "cuda_toolkit": {
+        "version": "12.x",
+        "digest": "sha256:unset"
+      },
+      "cublas": {
+        "version": "12.x",
+        "digest": "sha256:unset"
+      },
+      "cudnn": {
+        "version": "9.x",
+        "digest": "sha256:unset"
+      },
+      "nccl": {
+        "version": "2.x",
+        "digest": "sha256:unset"
+      }
+    },
+    "env": {
+      "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+      "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+      "CUDA_VISIBLE_DEVICES": "0"
+    },
+    "driver_policy": "pinned_or_recorded"
   },
   "runtime": {
-    "image": "docker.io/vllm/vllm-openai@sha256:c48cf118e1e6e39d7790e174d6014f7af5d06f79c2d29d984d11cbe2e8d414e7",
-    "gpus": "all",
-    "ipc_mode": "host",
-    "restart": "unless-stopped",
-    "host_port": 8000,
-    "container_port": 8000,
-    "api_host": "0.0.0.0",
-    "container_name": "vllm_default",
-    "compose_project_name": "vllm_default",
-    "required_secret_env": [
-    ],
-    "memlock": -1,
-    "stack": 67108864,
-    "paths": {
-      "hf_cache": "state/hf",
-      "artifacts": "artifacts"
+    "env": {
+      "PYTHONHASHSEED": "0",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1"
     },
-    "environment": {
-      "HF_HOME": "/data/hf",
-      "CUDA_DEVICE_MAX_CONNECTIONS": "1",
-      "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+    "locale": {
+      "lang": "C.UTF-8",
+      "tz": "UTC"
+    },
+    "threads": {
+      "omp_num_threads": 1,
+      "mkl_num_threads": 1
+    },
+    "network_policy": "online_allowed",
+    "execution": {
+      "backend": "openai_compatible",
+      "base_url": "http://127.0.0.1:8000",
+      "timeout_seconds": 600,
+      "deterministic_failure_policy": "warn_only",
+      "vllm_image": "docker.io/vllm/vllm-openai@sha256:8c9aaddfa6011b9651d06834d2fb90bdb9ab6ced4b420ec76925024eb12b22d0"
+    }
+  },
+  "vllm": {
+    "mode": "server",
+    "reproducibility": {
+      "enable_batch_invariance": true,
+      "enable_v1_multiprocessing": false
+    },
+    "env": {
+      "VLLM_BATCH_INVARIANT": "1",
+      "VLLM_ENABLE_V1_MULTIPROCESSING": "0"
+    },
+    "engine_args": {
+      "model": "org/model-name",
+      "trust_remote_code": false,
+      "dtype": "float16",
+      "tensor_parallel_size": 1,
+      "pipeline_parallel_size": 1,
+      "max_model_len": 32768
     }
   },
   "model": {
-    "id": "org/model-name",
-    "revision": "UNSET_RUN_LOCK_SCRIPT",
-    "locked_at_utc": "UNSET",
-    "served_name": "model-name"
+    "weights": {
+      "source": {
+        "type": "huggingface",
+        "repo": "org/model-name",
+        "revision": "UNSET"
+      },
+      "files": [
+        {
+          "path": "model.safetensors",
+          "digest": "sha256:unset"
+        }
+      ]
+    },
+    "tokenizer": {
+      "files": [
+        {
+          "path": "tokenizer.json",
+          "digest": "sha256:unset"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "digest": "sha256:unset"
+        },
+        {
+          "path": "special_tokens_map.json",
+          "digest": "sha256:unset"
+        }
+      ]
+    },
+    "config": {
+      "files": [
+        {
+          "path": "config.json",
+          "digest": "sha256:unset"
+        },
+        {
+          "path": "generation_config.json",
+          "digest": "sha256:unset"
+        }
+      ]
+    },
+    "chat_template": {
+      "file": {
+        "path": "chat_template.jinja",
+        "digest": "sha256:unset"
+      }
+    }
   },
-  "integrity": {
-    "expected_snapshot_manifest": "manifests/{profile_id}/{revision}.sha256",
-    "enforce_on_wait": true
+  "inference": {
+    "requests": [
+      {
+        "id": "req-0001",
+        "kind": "completion",
+        "prompt": "Write exactly one sentence that says the server is healthy.",
+        "sampling": {
+          "temperature": 0.0,
+          "top_p": 0.95,
+          "top_k": 50,
+          "max_tokens": 32,
+          "seed": 424242
+        },
+        "stop": {
+          "sequences": [],
+          "token_ids": []
+        }
+      }
+    ],
+    "batching": {
+      "policy": "fixed",
+      "schedule": "batch_invariant",
+      "max_num_seqs": 1,
+      "max_num_batched_tokens": 4096,
+      "fixed_request_order": true,
+      "concurrency": 1
+    }
   },
-  "vllm": {
-    "flags": [
-      "--seed=424242",
-      "--max-num-seqs=1",
-      "--enforce-eager",
-      "--disable-log-requests"
-    ]
+  "capture": {
+    "tokens": true,
+    "logits": {
+      "enabled": false,
+      "scope": "chosen_only",
+      "dtype": "float16",
+      "capture_prefill": false,
+      "capture_decode": false
+    },
+    "activations": {
+      "enabled": false,
+      "hooks": []
+    },
+    "engine_trace": {
+      "enabled": false,
+      "events": []
+    }
   },
-  "smoke_test": {
-    "prompt": "Write exactly one sentence that says the server is healthy.",
-    "max_tokens": 32,
-    "temperature": 0.0,
-    "seed": 424242
-  },
-  "sampling_defaults": {
-    "target_tokens": 20000,
-    "chunk_max_tokens": 1024,
-    "temperature": 0.0,
-    "top_p": 0.95,
-    "seed": 424242,
-    "timeout_seconds": 600
+  "outputs": {
+    "directory": "runs/${manifest_name}/${run_id}",
+    "golden": {
+      "enabled": false
+    },
+    "bundle_policy": {
+      "include": [
+        "manifest",
+        "lock",
+        "tokens",
+        "run_log"
+      ],
+      "retention_days": 30
+    }
   }
 }

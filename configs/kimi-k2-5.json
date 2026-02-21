@@ -1,29 +1,36 @@
 {
-  "base_config": "standard-base.json",
-  "integrity": {
-    "expected_snapshot_manifest": "manifests/kimi-k2-5/{revision}.sha256"
+  "x_base_manifest": "standard-base.json",
+  "metadata": {
+    "name": "kimi-k2-5",
+    "description": "Spec-aligned deterministic manifest for Kimi-K2.5.",
+    "created_at": "2026-02-20T13:13:18Z"
   },
-  "model": {
-    "id": "moonshotai/Kimi-K2.5",
-    "locked_at_utc": "2026-02-20T13:13:18Z",
-    "revision": "3367c8d1c68584429fab7faf845a32d5195b6ac1",
-    "served_name": "kimi-k2-5"
-  },
-  "profile": {
-    "description": "Reference profile for Kimi-K2.5 with deterministic-oriented vLLM flags.",
-    "id": "kimi-k2-5-fp16"
+  "artifacts": {
+    "lockfile": "manifests/kimi-k2-5/manifest.lock.json"
   },
   "runtime": {
-    "compose_project_name": "vllm_kimi_k2_5",
-    "container_name": "vllm_kimi_k2_5",
-    "host_port": 8006
+    "execution": {
+      "base_url": "http://127.0.0.1:8006"
+    }
   },
   "vllm": {
-    "flags": [
-      "--dtype=float16",
-      "--tensor-parallel-size=8",
-      "--pipeline-parallel-size=1",
-      "--max-model-len=32768"
-    ]
+    "engine_args": {
+      "model": "moonshotai/Kimi-K2.5",
+      "dtype": "float16",
+      "tensor_parallel_size": 8,
+      "pipeline_parallel_size": 1,
+      "max_model_len": 32768
+    }
+  },
+  "model": {
+    "weights": {
+      "source": {
+        "repo": "moonshotai/Kimi-K2.5",
+        "revision": "3367c8d1c68584429fab7faf845a32d5195b6ac1"
+      }
+    }
+  },
+  "outputs": {
+    "directory": "runs/kimi-k2-5/${run_id}"
   }
 }

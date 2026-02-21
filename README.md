@@ -1,168 +1,188 @@
 # Deterministic Inference Server
 
-This repository provides a config-driven, OpenAI-compatible `vLLM` serving workflow designed for auditability and reproducibility.
+Deterministic Inference Server is a manifest/lock based workflow for reproducible LLM inference runs.
+It provides:
 
-Goal:
-- A claimant can say: "using this server, I generated these tokens."
-- A verifier can independently reproduce the exact same tokens from the same inputs and locked artifacts.
+- declarative manifests for inference intent,
+- resolved lockfiles for pinned artifacts and runtime closure metadata,
+- deterministic run execution with provenance bundles,
+- pairwise bundle verification with determinism grading.
 
-## Trust Model
-
-Determinism depends on all mutable inputs being pinned and verified:
-- model revision pin (`model.revision`)
-- runtime image digest pin (`runtime.image` must be `...@sha256:...`)
-- local snapshot manifest pin (`manifests/<profile>/<revision>.sha256`)
-- reference prompt bundle hash pin (`manifests/reference_prompts/reference_prompts.sha256`)
-- deterministic sampling params (`temperature=0`, fixed `seed`, `concurrency=1`)
-
-The workflow is intentionally fail-closed:
-- missing snapshot manifest stops `run` (`scripts/atomic/run_profile.sh`)
-- sampling refuses weak modes (`scripts/core/sample_session.py`)
-- profile loading rejects non-digest images and runtime bootstrap pip installs (`scripts/core/profile_config.py`)
+The reference behavior and schema live in `spec`.
 
 ## Repository Layout
 
-- `configs/`: profile configs (model/runtime/vLLM flags).
-- `manifests/`: pinned snapshot manifest files (`sha256  ./relative/path`).
-- `artifacts/reference_prompts/`: reference prompt bundle.
-- `scripts/atomic/run_profile.sh`: strict run orchestration (`start -> wait+verify -> smoke`).
-- `scripts/core/serve.py`: start/stop/wait/hash/verify/lock tooling.
-- `scripts/core/sample_session.py`: deterministic token sampling.
-- `scripts/core/eval_determinism.py`: compare run logs.
-- `scripts/workflow.sh`: top-level CLI.
+- `deterministic_inference/`: core package (`schema`, `locking`, `execution`, `verification`, CLI)
+- `configs/`: model manifests (supports inheritance via `x_base_manifest`)
+- `manifests/`: lockfiles and manifest-related artifacts
+- `artifacts/`: generated run/bundle outputs
+- `tests/`: unit and workflow tests
+- `spec`: normative project specification
 
-## Prerequisites
+## Requirements
 
-- Linux host with Docker + Docker Compose plugin.
-- NVIDIA GPUs for target model profiles.
-- Python 3.10+.
-- Access tokens for gated models if needed (`HUGGING_FACE_HUB_TOKEN` in `.env`).
+- Python 3.10+
+- Dependencies from `requirements.txt`
 
-Install Python deps:
+Install dependencies:
 
 ```bash
-python3 -m pip install -r requirements.txt
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-## Standard Strict Workflow
+## Quick Start
 
-Use this for normal operation after manifests are already pinned and committed:
+Use the CLI entrypoint:
 
 ```bash
-./scripts/workflow.sh run --config configs/qwen3-235b-a22b-instruct-2507.json --secrets-file .env
+python -m deterministic_inference.cli <command> ...
 ```
 
-What it does:
-1. starts server
-2. waits for readiness and verifies full snapshot against pinned manifest
-3. runs smoke test
-4. optionally hashes snapshot (`--hash`)
-5. optionally stops server (`--stop`)
-
-Useful direct commands:
+Typical workflow:
 
 ```bash
-./scripts/workflow.sh start  --config <profile.json> --secrets-file .env
-./scripts/workflow.sh wait   --config <profile.json> --secrets-file .env --verify-manifest
-./scripts/workflow.sh smoke  --config <profile.json> --secrets-file .env
-./scripts/workflow.sh hash   --config <profile.json> --output manifests/<profile>/<revision>.sha256
-./scripts/workflow.sh verify --config <profile.json>
-./scripts/workflow.sh stop   --config <profile.json> --secrets-file .env
+# 1) Create a new manifest template
+python -m deterministic_inference.cli init \
+  --output configs/my-model.json \
+  --model-id org/model-name \
+  --model-revision <revision>
+
+# 2) (Optional) Bootstrap missing digests and write lock
+python -m deterministic_inference.cli digest-bootstrap \
+  --config configs/my-model.json \
+  --in-place \
+  --write-lock
+
+# 3) Resolve lockfile (requires real or bootstrapped sha256 digests in manifest)
+python -m deterministic_inference.cli lock --config configs/my-model.json
+
+# 4) Build runtime closure metadata and optionally refresh lock digest
+python -m deterministic_inference.cli build --config configs/my-model.json --update-lock
+
+# 5) Start serving stack (OpenAI-compatible endpoint)
+python -m deterministic_inference.cli serve \
+  --config configs/my-model.json
+
+# 6) Execute run and emit bundle + tokens + run log
+python -m deterministic_inference.cli run --config configs/my-model.json
+
+# 7) Compare two runs
+python -m deterministic_inference.cli verify \
+  --bundle-a runs/<run_a>/bundle.json \
+  --bundle-b runs/<run_b>/bundle.json
+
+# 8) Archive a run directory
+python -m deterministic_inference.cli bundle \
+  --run-dir runs/<run_id> \
+  --output artifacts/bundles/<run_id>.tar.gz
+
+# 9) Inspect manifest/lock/bundle metadata
+python -m deterministic_inference.cli inspect --input runs/<run_id>/bundle.json
 ```
 
-## One-Time Manifest Bootstrap (Trusted Environment)
+## CLI Commands
 
-`run` will not auto-create trust roots. For a new profile/revision:
+- `init`: create a new manifest template
+- `lock`: resolve and write lockfile with artifact digests/runtime digest
+- `build`: emit runtime closure metadata (`--update-lock` optionally rewrites lock)
+- `serve`: start a vLLM docker-compose service from manifest settings
+- `run`: execute inference and emit run bundle artifacts
+- `verify`: compare two bundles and emit report + summary
+- `bundle`: tar/gzip a run directory
+- `inspect`: summarize manifest/lock/bundle metadata
+- `digest-bootstrap`: populate missing digests (`sha256:unset`) for manifest bootstrap
 
-1. Pin model revision:
+## Manifest and Lock Model
 
-```bash
-./scripts/workflow.sh lock-model --config configs/<profile>.json --write
-```
+- Manifest (`kind=vllm.deterministic_inference_manifest`):
+  - declarative intent for hardware, runtime, model artifacts, inference requests, capture policy, and outputs.
+- Lock (`kind=vllm.deterministic_inference_lock`):
+  - resolved artifacts with digests, plus runtime closure digest and stable `lock_id`.
 
-2. Pin runtime image digest:
+Stable IDs:
 
-```bash
-./scripts/workflow.sh lock-image --config configs/<profile>.json --write
-```
+- `manifest_id = sha256(canonical_manifest)`
+- `lock_id = sha256(canonical_lock_without_lock_id)`
+- `run_id = sha256(manifest_id + lock_id + requests_digest + hardware_fingerprint_digest)`
 
-3. Start server and wait until model files are downloaded.
+## Determinism Behavior
 
-```bash
-./scripts/workflow.sh start --config configs/<profile>.json --secrets-file .env
-```
+- Pinned batching is enforced (`policy=fixed`, pinned batch size, deterministic ordering).
+- Determinism grading:
+  - `conformant`
+  - `non_conformant_hardware`
+  - `non_conformant_software`
+  - `mismatch_outputs`
+- Token output format is intentionally preserved:
+  - `sequences[].prompt_token_ids`
+  - `sequences[].output_token_ids`
 
-4. Write manifest from local snapshot:
+## Artifact Digest Integrity Verification
 
-```bash
-./scripts/workflow.sh hash --config configs/<profile>.json --output manifests/<profile>/<revision>.sha256
-```
+`run` verifies artifact digests against the lockfile by default when local artifact paths are available.
 
-5. Verify:
+- default: enabled
+- disable flag: `--no-verify-artifact-digests`
 
-```bash
-./scripts/workflow.sh verify --config configs/<profile>.json
-```
+## vLLM Image Selection and Verification
 
-6. Commit config + manifest in source control.
+`serve` resolves the image in this order:
 
-## Deterministic Token Sampling
+1. `--image` CLI override
+2. `runtime.execution.vllm_image` in manifest
+3. `VLLM_IMAGE` environment variable
 
-Sampling is strict mode only:
-- `--config` is required
-- full snapshot manifest verification is required
-- prompt hash verification is required
-- `--concurrency` must be `1`
-- `--skip-reference-hash-check` is rejected
-
-Run sampling:
-
-```bash
-./scripts/generate_tokens.sh \
-  --config configs/qwen3-235b-a22b-instruct-2507.json \
-  --n-prompts 100 \
-  --max-tokens 200 \
-  --run-log-output state/evals/logs/qwen_run_a.json \
-  --output artifacts/samples/qwen_run_a.json
-```
-
-## Reproducibility Claim Verification
-
-Given claimed run log + output bundle:
-
-1. checkout same repo commit
-2. run the same profile + sampling parameters to produce a fresh run log
-3. compare logs
-
-```bash
-./scripts/workflow.sh eval-determinism \
-  --run-a /path/to/claimed_run_log.json \
-  --run-b /path/to/replayed_run_log.json \
-  --output state/evals/reports/claim_check.json
-```
-
-Default evaluator thresholds are strict exact-match settings.
-
-## Reference Prompt Bootstrap
-
-Reference prompt generation is also strict:
-- model/tokenizer revision must be pinned
-- dataset revision must be pinned
-- tokenizer identity must match target HF model
+Image references must be digest-pinned (`...@sha256:<64-hex>`).
+Before starting the service, `serve` verifies the local image digest matches the pinned digest.
+Use `--pull` to fetch the pinned image first.
 
 Example:
 
 ```bash
-python3 scripts/core/bootstrap_reference_prompts.py \
-  --config configs/qwen3-235b-a22b-instruct-2507.json \
-  --dataset-revision <dataset_commit_or_tag> \
-  --force
+python -m deterministic_inference.cli run \
+  --config configs/my-model.json \
+  --no-verify-artifact-digests
 ```
+
+## Run Outputs
+
+A run directory contains:
+
+- `bundle.json`: provenance + run metadata + determinism grade
+- `manifest.used.json`: exact manifest used
+- `lock.used.json`: exact lockfile used
+- `tokens.json`: token outputs (stable downstream format)
+- `run_log.json`: detailed execution log, batch trace, determinism controls
+
+`verify` outputs:
+
+- `verify_report.json`: machine-readable comparison report
+- `verify_summary.txt`: human-readable summary
+
+## Configs in This Repository
+
+The existing model manifests under `configs/` are spec-shaped and loadable.
+Some include placeholder digests (for example `sha256:unset`) intended for migration/bootstrap workflows; those must be replaced with real digests before lock/run in strict mode.
 
 ## Testing
 
-Run test suite:
+Run the test suite:
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py'
 ```
+
+## Roadmap and Status
+
+### Migration Checklist
+
+- [ ] Implement real logits capture + comparison
+- [ ] Implement real activations capture + comparison
+- [ ] Implement real vLLM trace capture + comparison
+- [ ] Enforce `runtime.network_policy=offline_required` (disable outbound network + fail retrieval attempts)
+
+### Current Known Gaps
+
+- `capture.logits`, `capture.activations`, and `capture.engine_trace` are currently configuration-only placeholders and no-op in run/verify.

@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "kind": "vllm.deterministic_inference_lock",
+  "manifest_id": "dd32409fd210ebbc21d1cad44db2ed9eeab5a3c29f96a55cdbca62493560daed",
+  "generated_at": "2026-02-21T12:58:34Z",
+  "lock_algorithm": "sha256",
+  "runtime_closure_digest": "d55c3818de7d40d962a248e3317e76b3aca4d26851584216d7c6618e5442d9e6",
+  "artifacts": [
+    {
+      "name": "model.weight",
+      "path": "model.safetensors",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-V3.2",
+        "revision": "a7e62ac04f4f0438f1be3f64d6f44efefe7b9e24"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "tokenizer.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-V3.2",
+        "revision": "a7e62ac04f4f0438f1be3f64d6f44efefe7b9e24"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "tokenizer_config.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-V3.2",
+        "revision": "a7e62ac04f4f0438f1be3f64d6f44efefe7b9e24"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "special_tokens_map.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-V3.2",
+        "revision": "a7e62ac04f4f0438f1be3f64d6f44efefe7b9e24"
+      }
+    },
+    {
+      "name": "model.config",
+      "path": "config.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-V3.2",
+        "revision": "a7e62ac04f4f0438f1be3f64d6f44efefe7b9e24"
+      }
+    },
+    {
+      "name": "model.config",
+      "path": "generation_config.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-V3.2",
+        "revision": "a7e62ac04f4f0438f1be3f64d6f44efefe7b9e24"
+      }
+    },
+    {
+      "name": "model.chat_template",
+      "path": "chat_template.jinja",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-V3.2",
+        "revision": "a7e62ac04f4f0438f1be3f64d6f44efefe7b9e24"
+      }
+    },
+    {
+      "name": "python.package.vllm",
+      "path": "",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "sha256:unset"
+      }
+    },
+    {
+      "name": "python.package.torch",
+      "path": "",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "sha256:unset"
+      }
+    },
+    {
+      "name": "python.package.triton",
+      "path": "",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "sha256:unset"
+      }
+    },
+    {
+      "name": "cuda.userspace.cuda_toolkit",
+      "path": "cuda_toolkit",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "12.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.cublas",
+      "path": "cublas",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "12.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.cudnn",
+      "path": "cudnn",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "9.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.nccl",
+      "path": "nccl",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "2.x"
+      }
+    }
+  ],
+  "compiled_extensions": [],
+  "lock_id": "130399da9468f10eb5e76aeb0f8890536d7e4905b6e694a7b3512c9d688cfd32"
+}

@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "kind": "vllm.deterministic_inference_lock",
+  "manifest_id": "0345adbc3a5f6a6fe57a9f3f62c74261164d59aa6eb0bd5c7314ee6be4f4abb7",
+  "generated_at": "2026-02-21T12:58:34Z",
+  "lock_algorithm": "sha256",
+  "runtime_closure_digest": "7a10fca66f71eac41f5091165ce6e50d41ca509f9b53588c0c17a6a478d13870",
+  "artifacts": [
+    {
+      "name": "model.weight",
+      "path": "model.safetensors",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "MiniMaxAI/MiniMax-M2.5",
+        "revision": "1248334bbc56717c3d47a6bc66de110059b6580f"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "tokenizer.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "MiniMaxAI/MiniMax-M2.5",
+        "revision": "1248334bbc56717c3d47a6bc66de110059b6580f"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "tokenizer_config.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "MiniMaxAI/MiniMax-M2.5",
+        "revision": "1248334bbc56717c3d47a6bc66de110059b6580f"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "special_tokens_map.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "MiniMaxAI/MiniMax-M2.5",
+        "revision": "1248334bbc56717c3d47a6bc66de110059b6580f"
+      }
+    },
+    {
+      "name": "model.config",
+      "path": "config.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "MiniMaxAI/MiniMax-M2.5",
+        "revision": "1248334bbc56717c3d47a6bc66de110059b6580f"
+      }
+    },
+    {
+      "name": "model.config",
+      "path": "generation_config.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "MiniMaxAI/MiniMax-M2.5",
+        "revision": "1248334bbc56717c3d47a6bc66de110059b6580f"
+      }
+    },
+    {
+      "name": "model.chat_template",
+      "path": "chat_template.jinja",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "MiniMaxAI/MiniMax-M2.5",
+        "revision": "1248334bbc56717c3d47a6bc66de110059b6580f"
+      }
+    },
+    {
+      "name": "python.package.vllm",
+      "path": "",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "sha256:unset"
+      }
+    },
+    {
+      "name": "python.package.torch",
+      "path": "",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "sha256:unset"
+      }
+    },
+    {
+      "name": "python.package.triton",
+      "path": "",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "sha256:unset"
+      }
+    },
+    {
+      "name": "cuda.userspace.cuda_toolkit",
+      "path": "cuda_toolkit",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "12.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.cublas",
+      "path": "cublas",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "12.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.cudnn",
+      "path": "cudnn",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "9.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.nccl",
+      "path": "nccl",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "2.x"
+      }
+    }
+  ],
+  "compiled_extensions": [],
+  "lock_id": "50053aa4655ad78cce2abd6bb97ee72cd2c339e380665d4e7f2b340c81087b83"
+}

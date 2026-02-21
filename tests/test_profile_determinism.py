@@ -1,230 +1,249 @@
+from __future__ import annotations
+
 import json
-import sys
+import platform
 import tempfile
 import unittest
 from pathlib import Path
 
+import deterministic_inference as workflow
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-SCRIPTS_DIR = ROOT_DIR / "scripts" / "core"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-
-import profile_config  # noqa: E402
+from test_helpers import load_manifest, lock_manifest, make_manifest
 
 
-class ProfileDeterminismTests(unittest.TestCase):
-    def _profile_config_paths(self) -> list[Path]:
-        paths = sorted((ROOT_DIR / "configs").glob("*.json"))
-        return [
-            path for path in paths
-            if path.name not in {"standard-base.json", "model-profile.template.json"}
-        ]
+def _sha256_text(value: str) -> str:
+    import hashlib
 
-    def test_profiles_include_strict_deterministic_controls(self) -> None:
-        for config_path in self._profile_config_paths():
-            with self.subTest(config=str(config_path)):
-                profile = profile_config.load_profile(config_path)
-                self.assertEqual(profile.smoke_test.temperature, 0.0)
-                self.assertEqual(profile.sample_defaults.temperature, 0.0)
-                self.assertEqual(profile.smoke_test.seed, profile.sample_defaults.seed)
-                self.assertTrue(any(flag.startswith("--seed=") for flag in profile.vllm_flags))
-                self.assertIn("--max-num-seqs=1", profile.vllm_flags)
-                self.assertIn("--enforce-eager", profile.vllm_flags)
-                self.assertTrue(profile.integrity.enforce_on_wait)
-                self.assertTrue(profile_config.is_image_digest_pinned(profile.runtime.image))
-                self.assertTrue(any(flag == "--dtype=float16" for flag in profile.vllm_flags))
-                self.assertFalse(any(flag == "--dtype=auto" for flag in profile.vllm_flags))
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
-    def test_render_compose_yaml_is_stable(self) -> None:
-        profile = profile_config.load_profile(ROOT_DIR / "configs" / "kimi-k2-thinking.json")
-        rendered_one = profile_config.render_compose_yaml(profile)
-        rendered_two = profile_config.render_compose_yaml(profile)
-        self.assertEqual(rendered_one, rendered_two)
 
-    def test_config_inheritance_merges_base_values(self) -> None:
+def _apply_real_artifact_digests(tmp_path: Path, manifest: dict) -> None:
+    model_dir = tmp_path / "model-files"
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    file_contents = {
+        "model.safetensors": "dummy-weights",
+        "tokenizer.json": "{\"tokenizer\":\"dummy\"}",
+        "tokenizer_config.json": "{\"config\":\"dummy\"}",
+        "special_tokens_map.json": "{\"special\":\"dummy\"}",
+        "config.json": "{\"model\":\"dummy\"}",
+        "generation_config.json": "{\"generation\":\"dummy\"}",
+        "chat_template.jinja": "{{ messages }}",
+    }
+
+    digests: dict[str, str] = {}
+    for filename, content in file_contents.items():
+        path = model_dir / filename
+        path.write_text(content, encoding="utf-8")
+        digests[filename] = _sha256_text(content)
+
+    source = manifest["model"]["weights"]["source"]
+    source["local_path"] = str(model_dir.resolve())
+    manifest["model"]["weights"]["files"][0]["digest"] = digests["model.safetensors"]
+    for file_entry in manifest["model"]["tokenizer"]["files"]:
+        file_entry["digest"] = digests[str(file_entry["path"])]
+    for file_entry in manifest["model"]["config"]["files"]:
+        file_entry["digest"] = digests[str(file_entry["path"])]
+    manifest["model"]["chat_template"]["file"]["digest"] = digests["chat_template.jinja"]
+
+    for package in manifest["software_stack"]["python"]["packages"]:
+        package["source"]["digest"] = _sha256_text(f"python-package:{package['name']}")
+
+    for lib_name, payload in manifest["cuda_stack"]["userspace"].items():
+        payload["digest"] = _sha256_text(f"cuda-lib:{lib_name}")
+
+
+class TestLockBuildAndCli(unittest.TestCase):
+    def test_lock_and_build_update_lock(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            base_path = tmp / "base.json"
-            child_path = tmp / "child.json"
+            tmp_path = Path(tmpdir)
+            manifest_path = tmp_path / "manifest.json"
+            make_manifest(manifest_path)
 
-            base_payload = {
-                "schema_version": 1,
-                "profile": {"id": "base-profile"},
-                "runtime": {
-                    "image": "docker.io/vllm/vllm-openai@sha256:c48cf118e1e6e39d7790e174d6014f7af5d06f79c2d29d984d11cbe2e8d414e7",
-                    "gpus": "all",
-                    "ipc_mode": "host",
-                    "restart": "unless-stopped",
-                    "host_port": 8000,
-                    "container_port": 8000,
-                    "api_host": "0.0.0.0",
-                    "container_name": "base_container",
-                    "compose_project_name": "base_project",
-                    "required_secret_env": [],
-                    "memlock": -1,
-                    "stack": 67108864,
-                    "paths": {"hf_cache": "state/hf", "artifacts": "artifacts"},
-                    "environment": {"HF_HOME": "/data/hf"},
-                },
-                "model": {
-                    "id": "org/base-model",
-                    "revision": "UNSET_RUN_LOCK_SCRIPT",
-                    "locked_at_utc": "UNSET",
-                    "served_name": "base-model",
-                },
-                "integrity": {
-                    "expected_snapshot_manifest": "manifests/{profile_id}/{revision}.sha256",
-                    "enforce_on_wait": True,
-                },
-                "vllm": {"flags": ["--seed=424242"]},
-                "smoke_test": {
-                    "prompt": "ok",
-                    "max_tokens": 8,
-                    "temperature": 0.0,
-                    "seed": 424242,
-                },
-                "sampling_defaults": {
-                    "target_tokens": 20000,
-                    "chunk_max_tokens": 1024,
-                    "temperature": 0.0,
-                    "top_p": 0.95,
-                    "seed": 424242,
-                    "timeout_seconds": 600,
-                },
-            }
-            child_payload = {
-                "base_config": "base.json",
-                "profile": {"id": "child-profile"},
-                "runtime": {
-                    "host_port": 8100,
-                    "container_name": "child_container",
-                    "compose_project_name": "child_project",
-                },
-                "model": {
-                    "id": "org/child-model",
-                    "revision": "abc123",
-                    "locked_at_utc": "2026-02-17T00:00:00Z",
-                    "served_name": "child-model",
-                },
-                "vllm": {"flags": ["--dtype=float16"]},
-            }
+            lock_rc = workflow.main(["lock", "--config", str(manifest_path)])
+            self.assertEqual(lock_rc, 0)
 
-            base_path.write_text(json.dumps(base_payload), encoding="utf-8")
-            child_path.write_text(json.dumps(child_payload), encoding="utf-8")
+            build_output = tmp_path / "build.json"
+            build_rc = workflow.main(
+                [
+                    "build",
+                    "--config",
+                    str(manifest_path),
+                    "--output",
+                    str(build_output),
+                    "--update-lock",
+                ]
+            )
+            self.assertEqual(build_rc, 0)
+            self.assertTrue(build_output.is_file())
 
-            profile = profile_config.load_profile(child_path)
-            self.assertEqual(profile.profile_id, "child-profile")
-            self.assertEqual(profile.runtime.host_port, 8100)
-            self.assertEqual(profile.runtime.container_port, 8000)
-            self.assertEqual(profile.runtime.container_name, "child_container")
-            self.assertEqual(profile.model.model_id, "org/child-model")
-            self.assertEqual(profile.vllm_flags, ["--seed=424242", "--dtype=float16"])
+            build_payload = json.loads(build_output.read_text(encoding="utf-8"))
+            manifest = load_manifest(manifest_path)
+            lock_path = workflow.resolve_lock_path(manifest, manifest_path)
+            lock_payload = json.loads(lock_path.read_text(encoding="utf-8"))
 
-    def test_rejects_runtime_bootstrap_pip_packages(self) -> None:
+            self.assertEqual(
+                lock_payload["runtime_closure_digest"],
+                build_payload["runtime_closure_digest"],
+            )
+
+    def test_cli_init_lock_run_inspect_bundle(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            config_path = tmp / "config.json"
-            payload = {
-                "schema_version": 1,
-                "profile": {"id": "bad-bootstrap"},
-                "runtime": {
-                    "image": "docker.io/vllm/vllm-openai@sha256:c48cf118e1e6e39d7790e174d6014f7af5d06f79c2d29d984d11cbe2e8d414e7",
-                    "gpus": "all",
-                    "ipc_mode": "host",
-                    "restart": "unless-stopped",
-                    "host_port": 8000,
-                    "container_port": 8000,
-                    "api_host": "0.0.0.0",
-                    "container_name": "bad_bootstrap",
-                    "compose_project_name": "bad_bootstrap",
-                    "required_secret_env": [],
-                    "memlock": -1,
-                    "stack": 67108864,
-                    "paths": {"hf_cache": "state/hf", "artifacts": "artifacts"},
-                    "environment": {"HF_HOME": "/data/hf"},
-                    "bootstrap_pip_packages": ["blobfile==2.1.1"],
-                },
-                "model": {
-                    "id": "org/model",
-                    "revision": "abc123",
-                    "locked_at_utc": "2026-02-17T00:00:00Z",
-                    "served_name": "model",
-                },
-                "integrity": {"expected_snapshot_manifest": "manifests/{profile_id}/{revision}.sha256"},
-                "vllm": {"flags": ["--seed=424242"]},
-                "smoke_test": {"prompt": "ok", "max_tokens": 8, "temperature": 0.0, "seed": 424242},
-                "sampling_defaults": {
-                    "target_tokens": 20000,
-                    "chunk_max_tokens": 1024,
-                    "temperature": 0.0,
-                    "top_p": 0.95,
-                    "seed": 424242,
-                    "timeout_seconds": 600,
-                },
-            }
-            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            tmp_path = Path(tmpdir)
+            manifest_path = tmp_path / "cli-manifest.json"
 
-            with self.assertRaisesRegex(ValueError, "bootstrap_pip_packages"):
-                profile_config.load_profile(config_path)
+            init_rc = workflow.main(
+                [
+                    "init",
+                    "--output",
+                    str(manifest_path),
+                    "--model-id",
+                    "example/model",
+                    "--model-revision",
+                    "rev1",
+                ]
+            )
+            self.assertEqual(init_rc, 0)
 
-    def test_rejects_non_digest_runtime_image(self) -> None:
+            # Keep tests self-contained without external server.
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["runtime"]["execution"]["backend"] = "mock"
+            manifest["runtime"]["execution"].pop("base_url", None)
+            manifest["runtime"]["execution"]["deterministic_failure_policy"] = "warn_only"
+            manifest["hardware"]["constraints"] = {"cpu_arch": platform.machine()}
+            manifest["artifacts"]["lockfile"] = str((tmp_path / "locks" / "cli-manifest.lock.json").resolve())
+            _apply_real_artifact_digests(tmp_path, manifest)
+            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+            lock_rc = workflow.main(["lock", "--config", str(manifest_path)])
+            self.assertEqual(lock_rc, 0)
+
+            run_dir = tmp_path / "run-1"
+            run_rc = workflow.main(
+                [
+                    "run",
+                    "--config",
+                    str(manifest_path),
+                    "--run-dir",
+                    str(run_dir),
+                ]
+            )
+            self.assertEqual(run_rc, 0)
+            self.assertTrue((run_dir / "bundle.json").is_file())
+
+            inspect_manifest_rc = workflow.main(["inspect", "--input", str(manifest_path)])
+            inspect_bundle_rc = workflow.main(["inspect", "--input", str(run_dir / "bundle.json")])
+            self.assertEqual(inspect_manifest_rc, 0)
+            self.assertEqual(inspect_bundle_rc, 0)
+
+            archive_path = tmp_path / "run-1.tar.gz"
+            bundle_rc = workflow.main(
+                [
+                    "bundle",
+                    "--run-dir",
+                    str(run_dir),
+                    "--output",
+                    str(archive_path),
+                ]
+            )
+            self.assertEqual(bundle_rc, 0)
+            self.assertTrue(archive_path.is_file())
+
+    def test_verify_returns_non_zero_for_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            config_path = tmp / "config.json"
-            payload = {
-                "schema_version": 1,
-                "profile": {"id": "bad-image"},
-                "runtime": {
-                    "image": "vllm/vllm-openai:v0.11.0",
-                    "gpus": "all",
-                    "ipc_mode": "host",
-                    "restart": "unless-stopped",
-                    "host_port": 8000,
-                    "container_port": 8000,
-                    "api_host": "0.0.0.0",
-                    "container_name": "bad_image",
-                    "compose_project_name": "bad_image",
-                    "required_secret_env": [],
-                    "memlock": -1,
-                    "stack": 67108864,
-                    "paths": {"hf_cache": "state/hf", "artifacts": "artifacts"},
-                    "environment": {"HF_HOME": "/data/hf"},
-                },
-                "model": {
-                    "id": "org/model",
-                    "revision": "abc123",
-                    "locked_at_utc": "2026-02-17T00:00:00Z",
-                    "served_name": "model",
-                },
-                "integrity": {"expected_snapshot_manifest": "manifests/{profile_id}/{revision}.sha256"},
-                "vllm": {"flags": ["--seed=424242"]},
-                "smoke_test": {"prompt": "ok", "max_tokens": 8, "temperature": 0.0, "seed": 424242},
-                "sampling_defaults": {
-                    "target_tokens": 20000,
-                    "chunk_max_tokens": 1024,
-                    "temperature": 0.0,
-                    "top_p": 0.95,
-                    "seed": 424242,
-                    "timeout_seconds": 600,
-                },
-            }
-            config_path.write_text(json.dumps(payload), encoding="utf-8")
+            tmp_path = Path(tmpdir)
+            manifest_path = tmp_path / "manifest.json"
+            make_manifest(manifest_path)
+            lock_manifest(manifest_path)
+            manifest = workflow.load_manifest(manifest_path)
+            lock = workflow.load_lock(workflow.resolve_lock_path(manifest, manifest_path))
 
-            with self.assertRaisesRegex(ValueError, "runtime.image must be pinned"):
-                profile_config.load_profile(config_path)
+            run_a = workflow.execute_run(
+                manifest,
+                manifest_path=manifest_path,
+                lock=lock,
+                run_dir_override=tmp_path / "run-a",
+            )
+            run_b = workflow.execute_run(
+                manifest,
+                manifest_path=manifest_path,
+                lock=lock,
+                run_dir_override=tmp_path / "run-b",
+            )
 
-    def test_config_inheritance_cycle_raises(self) -> None:
+            tokens_b_path = Path(run_b["token_output_path"])
+            tokens_b = json.loads(tokens_b_path.read_text(encoding="utf-8"))
+            tokens_b["sequences"][0]["output_token_ids"][0] += 1
+            tokens_b_path.write_text(json.dumps(tokens_b, indent=2) + "\n", encoding="utf-8")
+
+            verify_rc = workflow.main(
+                [
+                    "verify",
+                    "--bundle-a",
+                    str(run_a["bundle_path"]),
+                    "--bundle-b",
+                    str(run_b["bundle_path"]),
+                    "--output-dir",
+                    str(tmp_path / "verify"),
+                ]
+            )
+            self.assertEqual(verify_rc, 1)
+
+    def test_run_with_embedded_lock_object(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            a_path = tmp / "a.json"
-            b_path = tmp / "b.json"
+            tmp_path = Path(tmpdir)
+            manifest_path = tmp_path / "manifest.json"
+            make_manifest(manifest_path)
 
-            a_path.write_text(json.dumps({"base_config": "b.json"}), encoding="utf-8")
-            b_path.write_text(json.dumps({"base_config": "a.json"}), encoding="utf-8")
+            manifest = workflow.load_manifest(manifest_path)
+            lock_payload = workflow.build_lock_payload(manifest, manifest_path=manifest_path)
+            manifest["artifacts"]["lockfile"] = lock_payload
+            manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
-            with self.assertRaisesRegex(ValueError, "inheritance cycle"):
-                profile_config.load_profile(a_path)
+            run_dir = tmp_path / "run-embedded"
+            run_rc = workflow.main(
+                [
+                    "run",
+                    "--config",
+                    str(manifest_path),
+                    "--run-dir",
+                    str(run_dir),
+                ]
+            )
+            self.assertEqual(run_rc, 0)
+            bundle = json.loads((run_dir / "bundle.json").read_text(encoding="utf-8"))
+            self.assertEqual(bundle["determinism_grade"], "conformant")
+            run_log = json.loads((run_dir / "run_log.json").read_text(encoding="utf-8"))
+            self.assertEqual(run_log["generation_lock_manifest"], "<embedded_lock>")
+
+    def test_cli_run_flag_disables_digest_integrity_check(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            manifest_path = tmp_path / "manifest.json"
+            make_manifest(manifest_path)
+            lock_manifest(manifest_path)
+
+            manifest = workflow.load_manifest(manifest_path)
+            local_model_dir = Path(manifest["model"]["weights"]["source"]["local_path"])
+            (local_model_dir / "tokenizer.json").write_text(
+                "{\"tokenizer\":\"tampered\"}",
+                encoding="utf-8",
+            )
+
+            run_dir = tmp_path / "run-no-integrity"
+            run_rc = workflow.main(
+                [
+                    "run",
+                    "--config",
+                    str(manifest_path),
+                    "--run-dir",
+                    str(run_dir),
+                    "--no-verify-artifact-digests",
+                ]
+            )
+            self.assertEqual(run_rc, 0)
+            bundle = json.loads((run_dir / "bundle.json").read_text(encoding="utf-8"))
+            self.assertEqual(bundle["artifact_integrity"]["enabled"], False)
 
 
 if __name__ == "__main__":

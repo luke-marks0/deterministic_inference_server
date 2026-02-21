@@ -1,83 +1,51 @@
-import sys
+from __future__ import annotations
+
+import hashlib
+import json
+import tempfile
 import unittest
-from types import SimpleNamespace
-from unittest import mock
-
-
 from pathlib import Path
 
+import deterministic_inference as workflow
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-SCRIPTS_DIR = ROOT_DIR / "scripts" / "core"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-
-import bootstrap_reference_prompts  # noqa: E402
+from test_helpers import lock_manifest, make_manifest
 
 
-class BootstrapReferencePromptsTests(unittest.TestCase):
-    def test_requires_dataset_revision_pin(self) -> None:
-        fake_profile = SimpleNamespace(
-            root_dir=ROOT_DIR,
-            model=SimpleNamespace(
-                model_id="Qwen/Qwen3-235B-A22B-Instruct-2507",
-                revision="ac9c66cc9b46af7306746a9250f23d47083d689e",
-            ),
-            runtime=SimpleNamespace(paths=SimpleNamespace(hf_cache="state/hf")),
-        )
-        argv = [
-            "bootstrap_reference_prompts.py",
-            "--config",
-            "configs/qwen3-235b-a22b-instruct-2507.json",
-        ]
-        with mock.patch.object(bootstrap_reference_prompts, "load_profile", return_value=fake_profile):
-            with mock.patch.object(sys, "argv", argv):
-                with self.assertRaisesRegex(SystemExit, "Dataset revision must be pinned"):
-                    bootstrap_reference_prompts.main()
+class TestRunIdAndConfigInheritance(unittest.TestCase):
+    def test_run_id_matches_spec_formula(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest_path = root / "manifest.json"
+            make_manifest(manifest_path)
+            lock_manifest(manifest_path)
 
-    def test_requires_model_revision_pin(self) -> None:
-        fake_profile = SimpleNamespace(
-            root_dir=ROOT_DIR,
-            model=SimpleNamespace(
-                model_id="Qwen/Qwen3-235B-A22B-Instruct-2507",
-                revision="UNSET",
-            ),
-            runtime=SimpleNamespace(paths=SimpleNamespace(hf_cache="state/hf")),
-        )
-        argv = [
-            "bootstrap_reference_prompts.py",
-            "--config",
-            "configs/qwen3-235b-a22b-instruct-2507.json",
-            "--dataset-revision",
-            "abc123",
-        ]
-        with mock.patch.object(bootstrap_reference_prompts, "load_profile", return_value=fake_profile):
-            with mock.patch.object(sys, "argv", argv):
-                with self.assertRaisesRegex(SystemExit, "Tokenizer/model revision must be pinned"):
-                    bootstrap_reference_prompts.main()
+            manifest = workflow.load_manifest(manifest_path)
+            lock = workflow.load_lock(workflow.resolve_lock_path(manifest, manifest_path))
+            result = workflow.execute_run(
+                manifest,
+                manifest_path=manifest_path,
+                lock=lock,
+                run_dir_override=root / "run",
+            )
 
-    def test_rejects_tokenizer_name_override(self) -> None:
-        fake_profile = SimpleNamespace(
-            root_dir=ROOT_DIR,
-            model=SimpleNamespace(
-                model_id="Qwen/Qwen3-235B-A22B-Instruct-2507",
-                revision="ac9c66cc9b46af7306746a9250f23d47083d689e",
-            ),
-            runtime=SimpleNamespace(paths=SimpleNamespace(hf_cache="state/hf")),
-        )
-        argv = [
-            "bootstrap_reference_prompts.py",
-            "--config",
-            "configs/qwen3-235b-a22b-instruct-2507.json",
-            "--dataset-revision",
-            "abc123",
-            "--tokenizer-name",
-            "custom/tokenizer",
-        ]
-        with mock.patch.object(bootstrap_reference_prompts, "load_profile", return_value=fake_profile):
-            with mock.patch.object(sys, "argv", argv):
-                with self.assertRaisesRegex(SystemExit, "tokenizer identity to match"):
-                    bootstrap_reference_prompts.main()
+            bundle = json.loads(Path(result["bundle_path"]).read_text(encoding="utf-8"))
+            manifest_id = workflow.compute_manifest_id(manifest)
+            lock_id = lock["lock_id"]
+            requests_digest = workflow.compute_requests_digest(manifest)
+            fingerprint_digest = workflow.canonical_sha256(bundle["hardware_fingerprint"])
+            expected_run_id = hashlib.sha256(
+                f"{manifest_id}{lock_id}{requests_digest}{fingerprint_digest}".encode("utf-8")
+            ).hexdigest()
+            self.assertEqual(bundle["run_id"], expected_run_id)
+
+    def test_model_configs_resolve_from_standard_base(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        manifest = workflow.load_manifest(repo_root / "configs" / "qwen3-8b.json")
+
+        self.assertEqual(manifest["kind"], workflow.MANIFEST_KIND)
+        self.assertEqual(manifest["runtime"]["execution"]["backend"], "openai_compatible")
+        self.assertEqual(manifest["model"]["weights"]["source"]["repo"], "Qwen/Qwen3-8B")
+        self.assertEqual(manifest["inference"]["batching"]["policy"], "fixed")
 
 
 if __name__ == "__main__":

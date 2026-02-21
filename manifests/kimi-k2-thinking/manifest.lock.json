@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "kind": "vllm.deterministic_inference_lock",
+  "manifest_id": "a11def2807b90b9145bb3a7b10463b0c5453b9cde6e7b1d9265a76b32969d4cb",
+  "generated_at": "2026-02-21T12:58:34Z",
+  "lock_algorithm": "sha256",
+  "runtime_closure_digest": "8bf75747060de44f2bc60985e3d9f2e7f983d617cc24c2854b6404a58cb25e66",
+  "artifacts": [
+    {
+      "name": "model.weight",
+      "path": "model.safetensors",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "moonshotai/Kimi-K2-Thinking",
+        "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "tokenizer.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "moonshotai/Kimi-K2-Thinking",
+        "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "tokenizer_config.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "moonshotai/Kimi-K2-Thinking",
+        "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "special_tokens_map.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "moonshotai/Kimi-K2-Thinking",
+        "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7"
+      }
+    },
+    {
+      "name": "model.config",
+      "path": "config.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "moonshotai/Kimi-K2-Thinking",
+        "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7"
+      }
+    },
+    {
+      "name": "model.config",
+      "path": "generation_config.json",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "moonshotai/Kimi-K2-Thinking",
+        "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7"
+      }
+    },
+    {
+      "name": "model.chat_template",
+      "path": "chat_template.jinja",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "moonshotai/Kimi-K2-Thinking",
+        "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7"
+      }
+    },
+    {
+      "name": "python.package.vllm",
+      "path": "",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "sha256:unset"
+      }
+    },
+    {
+      "name": "python.package.torch",
+      "path": "",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "sha256:unset"
+      }
+    },
+    {
+      "name": "python.package.triton",
+      "path": "",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "sha256:unset"
+      }
+    },
+    {
+      "name": "cuda.userspace.cuda_toolkit",
+      "path": "cuda_toolkit",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "12.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.cublas",
+      "path": "cublas",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "12.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.cudnn",
+      "path": "cudnn",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "9.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.nccl",
+      "path": "nccl",
+      "digest": "sha256:unset",
+      "retrieval": {
+        "version": "2.x"
+      }
+    }
+  ],
+  "compiled_extensions": [],
+  "lock_id": "4fdede84b379e3838a6e680394b8fe223771e50aeaba1e0a3b62c790d3d24060"
+}

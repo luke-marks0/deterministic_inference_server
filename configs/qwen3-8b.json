@@ -1,29 +1,36 @@
 {
-  "base_config": "standard-base.json",
-  "integrity": {
-    "expected_snapshot_manifest": "manifests/qwen3-8b/{revision}.sha256"
+  "x_base_manifest": "standard-base.json",
+  "metadata": {
+    "name": "qwen3-8b",
+    "description": "Spec-aligned deterministic manifest for Qwen3-8B.",
+    "created_at": "2026-02-20T06:35:45Z"
   },
-  "model": {
-    "id": "Qwen/Qwen3-8B",
-    "locked_at_utc": "2026-02-20T06:35:45Z",
-    "revision": "b968826d9c46dd6066d109eabc6255188de91218",
-    "served_name": "qwen3-8b"
-  },
-  "profile": {
-    "description": "Reference profile for Qwen3-8B with deterministic-oriented vLLM flags.",
-    "id": "qwen3-8b-fp16"
+  "artifacts": {
+    "lockfile": "manifests/qwen3-8b/manifest.lock.json"
   },
   "runtime": {
-    "compose_project_name": "vllm_qwen3_8b",
-    "container_name": "vllm_qwen3_8b",
-    "host_port": 8003
+    "execution": {
+      "base_url": "http://127.0.0.1:8003"
+    }
   },
   "vllm": {
-    "flags": [
-      "--dtype=float16",
-      "--tensor-parallel-size=1",
-      "--pipeline-parallel-size=1",
-      "--max-model-len=32768"
-    ]
+    "engine_args": {
+      "model": "Qwen/Qwen3-8B",
+      "dtype": "float16",
+      "tensor_parallel_size": 1,
+      "pipeline_parallel_size": 1,
+      "max_model_len": 32768
+    }
+  },
+  "model": {
+    "weights": {
+      "source": {
+        "repo": "Qwen/Qwen3-8B",
+        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+      }
+    }
+  },
+  "outputs": {
+    "directory": "runs/qwen3-8b/${run_id}"
   }
 }

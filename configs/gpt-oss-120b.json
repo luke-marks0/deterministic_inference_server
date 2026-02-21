@@ -1,30 +1,36 @@
 {
-  "base_config": "standard-base.json",
-  "integrity": {
-    "expected_snapshot_manifest": "manifests/gpt-oss-120b/{revision}.sha256"
+  "x_base_manifest": "standard-base.json",
+  "metadata": {
+    "name": "gpt-oss-120b",
+    "description": "Spec-aligned deterministic manifest for gpt-oss-120b.",
+    "created_at": "2026-02-18T00:00:00Z"
   },
-  "model": {
-    "id": "openai/gpt-oss-120b",
-    "locked_at_utc": "2026-02-18T00:00:00Z",
-    "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f",
-    "served_name": "gpt-oss-120b"
-  },
-  "profile": {
-    "description": "Reference profile for gpt-oss-120b with deterministic-oriented vLLM flags.",
-    "id": "gpt-oss-120b-fp16"
+  "artifacts": {
+    "lockfile": "manifests/gpt-oss-120b/manifest.lock.json"
   },
   "runtime": {
-    "compose_project_name": "vllm_gpt_oss_120b",
-    "container_name": "vllm_gpt_oss_120b",
-    "host_port": 8003,
-    "image": "docker.io/vllm/vllm-openai@sha256:d8d39b59e909d2378ac4feeb191f7e7b6f1342477dc66b7c47cec89e9985ad8a"
+    "execution": {
+      "base_url": "http://127.0.0.1:8003"
+    }
   },
   "vllm": {
-    "flags": [
-      "--dtype=float16",
-      "--tensor-parallel-size=1",
-      "--pipeline-parallel-size=1",
-      "--max-model-len=32768"
-    ]
+    "engine_args": {
+      "model": "openai/gpt-oss-120b",
+      "dtype": "float16",
+      "tensor_parallel_size": 1,
+      "pipeline_parallel_size": 1,
+      "max_model_len": 32768
+    }
+  },
+  "model": {
+    "weights": {
+      "source": {
+        "repo": "openai/gpt-oss-120b",
+        "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f"
+      }
+    }
+  },
+  "outputs": {
+    "directory": "runs/gpt-oss-120b/${run_id}"
   }
 }

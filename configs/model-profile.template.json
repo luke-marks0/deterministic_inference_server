@@ -1,32 +1,36 @@
 {
-  "base_config": "standard-base.json",
-  "profile": {
-    "id": "my-model-profile",
-    "description": "Replace with model + stack details."
+  "x_base_manifest": "standard-base.json",
+  "metadata": {
+    "name": "my-model-profile",
+    "description": "Replace with model + stack details.",
+    "created_at": "2026-02-21T00:00:00Z"
+  },
+  "artifacts": {
+    "lockfile": "manifests/my-model-profile/manifest.lock.json"
   },
   "runtime": {
-    "host_port": 8000,
-    "container_name": "vllm_my_model",
-    "compose_project_name": "vllm_my_model",
-    "required_secret_env": [
-      "HUGGING_FACE_HUB_TOKEN"
-    ]
-  },
-  "model": {
-    "id": "org/model-name",
-    "revision": "UNSET_RUN_LOCK_SCRIPT",
-    "locked_at_utc": "UNSET",
-    "served_name": "model-name"
-  },
-  "integrity": {
-    "expected_snapshot_manifest": "manifests/{profile_id}/{revision}.sha256"
+    "execution": {
+      "base_url": "http://127.0.0.1:8000"
+    }
   },
   "vllm": {
-    "flags": [
-      "--dtype=float16",
-      "--tensor-parallel-size=1",
-      "--pipeline-parallel-size=1",
-      "--max-model-len=32768"
-    ]
+    "engine_args": {
+      "model": "org/model-name",
+      "dtype": "float16",
+      "tensor_parallel_size": 1,
+      "pipeline_parallel_size": 1,
+      "max_model_len": 32768
+    }
+  },
+  "model": {
+    "weights": {
+      "source": {
+        "repo": "org/model-name",
+        "revision": "UNSET"
+      }
+    }
+  },
+  "outputs": {
+    "directory": "runs/my-model-profile/${run_id}"
   }
 }

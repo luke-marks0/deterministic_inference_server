@@ -1,29 +1,36 @@
 {
-  "base_config": "standard-base.json",
-  "integrity": {
-    "expected_snapshot_manifest": "manifests/minimax-m2-1/{revision}.sha256"
+  "x_base_manifest": "standard-base.json",
+  "metadata": {
+    "name": "minimax-m2-1",
+    "description": "Spec-aligned deterministic manifest for MiniMax-M2.1.",
+    "created_at": "2026-02-20T13:13:18Z"
   },
-  "model": {
-    "id": "MiniMaxAI/MiniMax-M2.1",
-    "locked_at_utc": "2026-02-20T13:13:18Z",
-    "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
-    "served_name": "minimax-m2-1"
-  },
-  "profile": {
-    "description": "Reference profile for MiniMax-M2.1 with deterministic-oriented vLLM flags.",
-    "id": "minimax-m2-1-fp16"
+  "artifacts": {
+    "lockfile": "manifests/minimax-m2-1/manifest.lock.json"
   },
   "runtime": {
-    "compose_project_name": "vllm_minimax_m2_1",
-    "container_name": "vllm_minimax_m2_1",
-    "host_port": 8007
+    "execution": {
+      "base_url": "http://127.0.0.1:8007"
+    }
   },
   "vllm": {
-    "flags": [
-      "--dtype=float16",
-      "--tensor-parallel-size=8",
-      "--pipeline-parallel-size=1",
-      "--max-model-len=32768"
-    ]
+    "engine_args": {
+      "model": "MiniMaxAI/MiniMax-M2.1",
+      "dtype": "float16",
+      "tensor_parallel_size": 8,
+      "pipeline_parallel_size": 1,
+      "max_model_len": 32768
+    }
+  },
+  "model": {
+    "weights": {
+      "source": {
+        "repo": "MiniMaxAI/MiniMax-M2.1",
+        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c"
+      }
+    }
+  },
+  "outputs": {
+    "directory": "runs/minimax-m2-1/${run_id}"
   }
 }

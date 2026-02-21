@@ -1,39 +1,44 @@
 {
-  "base_config": "standard-base.json",
-  "integrity": {
-    "expected_snapshot_manifest": "manifests/kimi-k2-thinking/{revision}.sha256"
+  "x_base_manifest": "standard-base.json",
+  "metadata": {
+    "name": "kimi-k2-thinking",
+    "description": "Spec-aligned deterministic manifest for Kimi-K2-Thinking.",
+    "created_at": "2026-02-17T00:00:00Z"
   },
-  "model": {
-    "id": "moonshotai/Kimi-K2-Thinking",
-    "locked_at_utc": "2026-02-17T00:00:00Z",
-    "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7",
-    "served_name": "kimi-k2-thinking"
-  },
-  "profile": {
-    "description": "Reference profile for Kimi-K2-Thinking with deterministic-oriented vLLM flags.",
-    "id": "kimi-k2-thinking-int4"
+  "artifacts": {
+    "lockfile": "manifests/kimi-k2-thinking/manifest.lock.json"
   },
   "runtime": {
-    "compose_project_name": "vllm_kimi_k2_thinking",
-    "container_name": "vllm_kimi_k2_thinking",
-    "host_port": 8001,
-    "image": "docker.io/vllm/vllm-openai@sha256:d8d39b59e909d2378ac4feeb191f7e7b6f1342477dc66b7c47cec89e9985ad8a",
-    "environment": {
-      "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
+    "execution": {
+      "base_url": "http://127.0.0.1:8001"
     }
   },
   "vllm": {
-    "flags": [
-      "--dtype=float16",
-      "--tensor-parallel-size=8",
-      "--pipeline-parallel-size=1",
-      "--max-model-len=768",
-      "--max-num-batched-tokens=256",
-      "--gpu-memory-utilization=0.95",
-      "--trust-remote-code",
-      "--enable-auto-tool-choice",
-      "--tool-call-parser=kimi_k2",
-      "--reasoning-parser=qwen3"
-    ]
+    "engine_args": {
+      "model": "moonshotai/Kimi-K2-Thinking",
+      "dtype": "float16",
+      "tensor_parallel_size": 8,
+      "pipeline_parallel_size": 1,
+      "max_model_len": 768,
+      "max_num_batched_tokens": 256,
+      "gpu_memory_utilization": 0.95,
+      "trust_remote_code": true,
+      "enable_auto_tool_choice": true,
+      "tool_call_parser": "kimi_k2",
+      "reasoning_parser": "qwen3"
+    }
+  },
+  "model": {
+    "weights": {
+      "source": {
+        "repo": "moonshotai/Kimi-K2-Thinking",
+        "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7",
+        "remote_code_commit": "5b64d2a87e32f24d6231ef01ee676f65e54496a7",
+        "remote_code_digest": "809923a8bb6f86f4818e40f3e376f53b0e351a26178fa7659effb6c17a060e6e"
+      }
+    }
+  },
+  "outputs": {
+    "directory": "runs/kimi-k2-thinking/${run_id}"
   }
 }

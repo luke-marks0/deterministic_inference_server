@@ -1,96 +1,175 @@
+from __future__ import annotations
+
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+import deterministic_inference as workflow
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
-SCRIPTS_DIR = ROOT_DIR / "scripts" / "core"
-if str(SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS_DIR))
-
-import eval_determinism  # noqa: E402
+from test_helpers import lock_manifest, make_manifest
 
 
-def _write_run_log(path: Path, records: list[dict[str, object]]) -> None:
-    payload = {
-        "schema_version": 1,
-        "run_type": "determinism_log",
-        "created_at_utc": "2026-02-17T00:00:00Z",
-        "model": "test/model",
-        "records": records,
-    }
-    path.write_text(json.dumps(payload), encoding="utf-8")
+class TestVerifyDeterminismGrading(unittest.TestCase):
+    def _execute_bundle(
+        self,
+        *,
+        root: Path,
+        manifest_path: Path,
+        run_name: str,
+    ) -> Path:
+        manifest = workflow.load_manifest(manifest_path)
+        lock = workflow.load_lock(workflow.resolve_lock_path(manifest, manifest_path))
+        result = workflow.execute_run(
+            manifest,
+            manifest_path=manifest_path,
+            lock=lock,
+            run_dir_override=root / run_name,
+        )
+        return Path(result["bundle_path"])
 
-
-class DeterminismEvaluationTests(unittest.TestCase):
-    def test_identical_logs_pass_strict_thresholds(self) -> None:
+    def test_conformant_grade(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            run_a = tmp / "run_a.json"
-            run_b = tmp / "run_b.json"
-            records = [
-                {"prompt_index": 0, "prompt_token_ids": [1, 2], "output_token_ids": [10, 11, 12]},
-                {"prompt_index": 1, "prompt_token_ids": [3, 4], "output_token_ids": [20, 21]},
-            ]
-            _write_run_log(run_a, records)
-            _write_run_log(run_b, records)
+            root = Path(tmpdir)
+            manifest_path = root / "manifest.json"
+            make_manifest(manifest_path)
+            lock_manifest(manifest_path)
 
-            settings = eval_determinism.EvalSettings(
-                exact_match_threshold=1.0,
-                position_match_threshold=1.0,
-                max_mean_length_delta=0.0,
-                max_total_token_delta=0,
+            bundle_a = self._execute_bundle(root=root, manifest_path=manifest_path, run_name="run-a")
+            bundle_b = self._execute_bundle(root=root, manifest_path=manifest_path, run_name="run-b")
+
+            out = workflow.verify_bundles(
+                bundle_a,
+                bundle_b,
+                output_dir=root / "verify-a-b",
             )
-            report = eval_determinism.evaluate_runs(run_a, run_b, settings)
+            self.assertEqual(out["grade"], "conformant")
 
-            self.assertTrue(report["summary"]["all_passed"])
-            exact = next(item for item in report["evaluations"] if item["name"] == "exact_output_match_rate")
-            self.assertEqual(exact["score"], 1.0)
-
-    def test_prompt_mismatch_fails_alignment(self) -> None:
+    def test_mismatch_outputs_grade(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            run_a = tmp / "run_a.json"
-            run_b = tmp / "run_b.json"
-            _write_run_log(run_a, [{"prompt_index": 0, "prompt_token_ids": [1, 2], "output_token_ids": [10]}])
-            _write_run_log(run_b, [{"prompt_index": 0, "prompt_token_ids": [1, 999], "output_token_ids": [10]}])
+            root = Path(tmpdir)
+            manifest_path = root / "manifest.json"
+            make_manifest(manifest_path)
+            lock_manifest(manifest_path)
 
-            settings = eval_determinism.EvalSettings(
-                exact_match_threshold=1.0,
-                position_match_threshold=1.0,
-                max_mean_length_delta=0.0,
-                max_total_token_delta=0,
+            bundle_a = self._execute_bundle(root=root, manifest_path=manifest_path, run_name="run-a")
+            bundle_b = self._execute_bundle(root=root, manifest_path=manifest_path, run_name="run-b")
+
+            tokens_path = bundle_b.parent / "tokens.json"
+            tokens = json.loads(tokens_path.read_text(encoding="utf-8"))
+            tokens["sequences"][0]["output_token_ids"][0] += 999
+            tokens_path.write_text(json.dumps(tokens, indent=2) + "\n", encoding="utf-8")
+
+            out = workflow.verify_bundles(
+                bundle_a,
+                bundle_b,
+                output_dir=root / "verify-mismatch",
             )
-            report = eval_determinism.evaluate_runs(run_a, run_b, settings)
+            self.assertEqual(out["grade"], "mismatch_outputs")
 
-            self.assertFalse(report["summary"]["all_passed"])
-            alignment = next(item for item in report["evaluations"] if item["name"] == "prompt_alignment")
-            self.assertFalse(alignment["passed"])
-
-    def test_supports_sample_output_json_fallback(self) -> None:
+    def test_non_conformant_software_grade(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            tmp = Path(tmpdir)
-            run_a = tmp / "run_a.json"
-            run_b = tmp / "run_b.json"
-            payload = {
-                "model": "test/model",
-                "sequences": [
-                    {"prompt_token_ids": [1, 2], "output_token_ids": [10, 11]},
-                ],
-            }
-            run_a.write_text(json.dumps(payload), encoding="utf-8")
-            run_b.write_text(json.dumps(payload), encoding="utf-8")
+            root = Path(tmpdir)
+            manifest_a_path = root / "manifest-a.json"
+            make_manifest(manifest_a_path)
+            lock_manifest(manifest_a_path)
+            bundle_a = self._execute_bundle(root=root, manifest_path=manifest_a_path, run_name="run-a")
 
-            settings = eval_determinism.EvalSettings(
-                exact_match_threshold=1.0,
-                position_match_threshold=1.0,
-                max_mean_length_delta=0.0,
-                max_total_token_delta=0,
+            def mutate(manifest: dict) -> None:
+                manifest["runtime"]["env"]["PYTHONHASHSEED"] = "123"
+
+            manifest_b_path = root / "manifest-b.json"
+            make_manifest(manifest_b_path, mutate=mutate)
+            lock_manifest(manifest_b_path)
+            bundle_b = self._execute_bundle(root=root, manifest_path=manifest_b_path, run_name="run-b")
+
+            out = workflow.verify_bundles(
+                bundle_a,
+                bundle_b,
+                output_dir=root / "verify-software",
             )
-            report = eval_determinism.evaluate_runs(run_a, run_b, settings)
-            self.assertTrue(report["summary"]["all_passed"])
+            self.assertEqual(out["grade"], "non_conformant_software")
+
+    def test_non_conformant_hardware_grade(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest_a_path = root / "manifest-a.json"
+            make_manifest(manifest_a_path)
+            lock_manifest(manifest_a_path)
+            bundle_a = self._execute_bundle(root=root, manifest_path=manifest_a_path, run_name="run-a")
+
+            def mutate(manifest: dict) -> None:
+                manifest["hardware"]["constraints"] = {"cpu_arch": "intentionally-mismatched-arch"}
+                manifest["determinism"]["strict_hardware"] = False
+
+            manifest_b_path = root / "manifest-b.json"
+            make_manifest(manifest_b_path, mutate=mutate)
+            lock_manifest(manifest_b_path)
+            bundle_b = self._execute_bundle(root=root, manifest_path=manifest_b_path, run_name="run-b")
+
+            out = workflow.verify_bundles(
+                bundle_a,
+                bundle_b,
+                output_dir=root / "verify-hardware",
+            )
+            self.assertEqual(out["grade"], "non_conformant_hardware")
+
+    def test_non_conformant_software_when_token_rules_differ(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest_a_path = root / "manifest-a.json"
+            make_manifest(manifest_a_path)
+            lock_manifest(manifest_a_path)
+            bundle_a = self._execute_bundle(root=root, manifest_path=manifest_a_path, run_name="run-a")
+
+            def mutate(manifest: dict) -> None:
+                manifest["determinism"]["compare"]["tokens"]["rule"] = "exact"
+
+            manifest_b_path = root / "manifest-b.json"
+            make_manifest(manifest_b_path, mutate=mutate)
+            lock_manifest(manifest_b_path)
+            bundle_b = self._execute_bundle(root=root, manifest_path=manifest_b_path, run_name="run-b")
+
+            manifest_used_b = json.loads((bundle_b.parent / "manifest.used.json").read_text(encoding="utf-8"))
+            manifest_used_b["determinism"]["compare"]["tokens"]["rule"] = "prefix_match"
+            (bundle_b.parent / "manifest.used.json").write_text(
+                json.dumps(manifest_used_b, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            out = workflow.verify_bundles(
+                bundle_a,
+                bundle_b,
+                output_dir=root / "verify-token-rule-mismatch",
+            )
+            self.assertEqual(out["grade"], "non_conformant_software")
+
+    def test_verify_rejects_unsupported_token_rule(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest_path = root / "manifest.json"
+            make_manifest(manifest_path)
+            lock_manifest(manifest_path)
+            bundle_a = self._execute_bundle(root=root, manifest_path=manifest_path, run_name="run-a")
+            bundle_b = self._execute_bundle(root=root, manifest_path=manifest_path, run_name="run-b")
+
+            manifest_used = json.loads((bundle_a.parent / "manifest.used.json").read_text(encoding="utf-8"))
+            manifest_used["determinism"]["compare"]["tokens"]["rule"] = "top_k_match"
+            (bundle_a.parent / "manifest.used.json").write_text(
+                json.dumps(manifest_used, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            (bundle_b.parent / "manifest.used.json").write_text(
+                json.dumps(manifest_used, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(ValueError):
+                workflow.verify_bundles(
+                    bundle_a,
+                    bundle_b,
+                    output_dir=root / "verify-unsupported-token-rule",
+                )
 
 
 if __name__ == "__main__":

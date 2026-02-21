@@ -1,6 +1,4 @@
 # Generic fallback compose template.
-# Preferred workflow: use `scripts/workflow.sh render --config ...`, which writes
-# a fully resolved compose file to `state/generated/<profile_id>/docker-compose.yml`.
 services:
   vllm:
     image: ${VLLM_IMAGE}
