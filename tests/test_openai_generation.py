@@ -113,6 +113,62 @@ class TestOpenAIGeneration(unittest.TestCase):
         payload = post_json.call_args.args[1]
         self.assertEqual(payload["prompt"], [11, 12, 13])
 
+    def test_openai_generation_renders_messages_with_chat_template(self) -> None:
+        request = {
+            "id": "req-0001",
+            "kind": "completion",
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Hello there"},
+            ],
+            "sampling": {
+                "max_tokens": 3,
+                "temperature": 0.0,
+                "top_p": 1.0,
+                "top_k": 5,
+                "seed": 7,
+            },
+            "stop": {"sequences": [], "token_ids": []},
+        }
+        response = {
+            "choices": [
+                {
+                    "logprobs": {
+                        "tokens": [
+                            "token_id:90",
+                            "token_id:91",
+                            "token_id:92",
+                            "token_id:10",
+                            "token_id:11",
+                        ]
+                    }
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 3,
+                "completion_tokens": 2,
+            },
+        }
+
+        with (
+            mock.patch(
+                "deterministic_inference.execution._messages_prompt_token_ids",
+                return_value=[90, 91, 92],
+            ) as prompt_ids_mock,
+            mock.patch("deterministic_inference.execution._post_json", return_value=response) as post_json,
+        ):
+            prompt_ids, output_ids, completion_count = execution._openai_generate_tokens(  # type: ignore[attr-defined]
+                request=request,
+                manifest=self._manifest(),
+            )
+
+        self.assertEqual(prompt_ids, [90, 91, 92])
+        self.assertEqual(output_ids, [10, 11])
+        self.assertEqual(completion_count, 2)
+        prompt_ids_mock.assert_called_once()
+        payload = post_json.call_args.args[1]
+        self.assertEqual(payload["prompt"], [90, 91, 92])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from functools import lru_cache
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -382,6 +383,44 @@ def _request_prompt_text(request: dict[str, Any]) -> str:
     raise ValueError("Request is missing prompt/messages for text prompt generation.")
 
 
+@lru_cache(maxsize=8)
+def _load_chat_template_tokenizer(model_name: str, revision: str):
+    from transformers import AutoTokenizer
+
+    kwargs: dict[str, Any] = {"trust_remote_code": True}
+    if revision:
+        kwargs["revision"] = revision
+    return AutoTokenizer.from_pretrained(model_name, **kwargs)
+
+
+def _messages_prompt_token_ids(request: dict[str, Any], manifest: dict[str, Any]) -> list[int] | None:
+    if not isinstance(request.get("messages"), list):
+        return None
+
+    model_source = (
+        manifest.get("model", {})
+        .get("weights", {})
+        .get("source", {})
+    )
+    model_name = str(
+        model_source.get("repo")
+        or model_source.get("id")
+        or manifest.get("vllm", {}).get("engine_args", {}).get("model", "")
+    ).strip()
+    revision = str(model_source.get("revision", "")).strip()
+    if not model_name:
+        raise ValueError(
+            "Cannot render messages with chat template because no model identifier is available "
+            "in manifest.model.weights.source.repo or vllm.engine_args.model."
+        )
+
+    tokenizer = _load_chat_template_tokenizer(model_name, revision)
+    messages = _request_messages(request)
+    rendered = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    token_ids = tokenizer.encode(rendered, add_special_tokens=False)
+    return [int(token) for token in token_ids]
+
+
 def _extract_response_token_ids(response: dict[str, Any]) -> list[int]:
     choices = response.get("choices")
     if not isinstance(choices, list) or not choices:
@@ -462,6 +501,8 @@ def _openai_generate_tokens(
         if isinstance(request.get("prompt_token_ids"), list)
         else None
     )
+    if explicit_prompt_token_ids is None:
+        explicit_prompt_token_ids = _messages_prompt_token_ids(request, manifest)
     prompt_payload: str | list[int]
     if explicit_prompt_token_ids is not None:
         prompt_payload = explicit_prompt_token_ids
