@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest import mock
 
 import deterministic_inference as workflow
-from deterministic_inference.serving import wait_for_openai_server
+from deterministic_inference.serving import build_serve_plan, wait_for_openai_server
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -162,6 +162,106 @@ class TestBootstrapAndServeCommands(unittest.TestCase):
                 ]
             )
             self.assertEqual(dry_run_rc, 0)
+
+    def test_build_serve_plan_propagates_manifest_runtime_and_engine_settings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            manifest_path = tmp_path / "manifest.json"
+            manifest = _build_server_manifest(manifest_path)
+            manifest["runtime"]["env"]["PYTHONHASHSEED"] = "321"
+            manifest["runtime"]["threads"]["omp_num_threads"] = 4
+            manifest["runtime"]["threads"]["mkl_num_threads"] = 5
+            manifest["runtime"]["locale"]["lang"] = "C"
+            manifest["runtime"]["locale"]["tz"] = "UTC"
+            manifest["cuda_stack"]["env"]["CUDA_VISIBLE_DEVICES"] = "7"
+            manifest["vllm"]["env"]["VLLM_BATCH_INVARIANT"] = "1"
+            manifest["vllm"]["engine_args"]["dtype"] = "bfloat16"
+            manifest["vllm"]["engine_args"]["tensor_parallel_size"] = 2
+            manifest["vllm"]["engine_args"]["pipeline_parallel_size"] = 1
+            manifest["vllm"]["engine_args"]["max_model_len"] = 12345
+            manifest["inference"]["batching"]["max_num_seqs"] = 2
+            manifest["inference"]["batching"]["max_num_batched_tokens"] = 2048
+
+            plan = build_serve_plan(manifest, image="docker.io/vllm/vllm-openai@sha256:" + ("3" * 64))
+
+            self.assertEqual(plan.env["PYTHONHASHSEED"], "321")
+            self.assertEqual(plan.env["OMP_NUM_THREADS"], "4")
+            self.assertEqual(plan.env["MKL_NUM_THREADS"], "5")
+            self.assertEqual(plan.env["LANG"], "C")
+            self.assertEqual(plan.env["LC_ALL"], "C")
+            self.assertEqual(plan.env["TZ"], "UTC")
+            self.assertEqual(plan.env["CUDA_VISIBLE_DEVICES"], "7")
+            self.assertEqual(plan.env["VLLM_BATCH_INVARIANT"], "1")
+            self.assertEqual(plan.env["VLLM_DTYPE"], "bfloat16")
+            self.assertEqual(plan.env["VLLM_TENSOR_PARALLEL_SIZE"], "2")
+            self.assertEqual(plan.env["VLLM_PIPELINE_PARALLEL_SIZE"], "1")
+            self.assertEqual(plan.env["VLLM_MAX_MODEL_LEN"], "12345")
+            self.assertEqual(plan.env["VLLM_MAX_NUM_SEQS"], "2")
+            self.assertEqual(plan.env["VLLM_MAX_NUM_BATCHED_TOKENS"], "2048")
+
+    def test_build_serve_plan_disables_batch_invariant_for_fp16(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            manifest_path = tmp_path / "manifest.json"
+            manifest = _build_server_manifest(manifest_path)
+            manifest["vllm"]["env"]["VLLM_BATCH_INVARIANT"] = "1"
+            manifest["vllm"]["engine_args"]["dtype"] = "float16"
+
+            plan = build_serve_plan(manifest, image="docker.io/vllm/vllm-openai@sha256:" + ("4" * 64))
+            self.assertEqual(plan.env["VLLM_BATCH_INVARIANT"], "0")
+
+    def test_serve_list_prints_active_containers(self) -> None:
+        with mock.patch("deterministic_inference.serving.subprocess.run") as run_mock:
+            run_mock.return_value = mock.Mock(
+                returncode=0,
+                stdout=(
+                    "abc123\tvllm-one\tdocker.io/vllm/a@sha256:111\tUp 2 minutes\t0.0.0.0:8123->8000/tcp\n"
+                    "def456\tvllm-two\tdocker.io/vllm/b@sha256:222\tUp 1 minute\t0.0.0.0:8124->8000/tcp\n"
+                ),
+                stderr="",
+            )
+
+            rc = workflow.main(["serve", "list"])
+
+        self.assertEqual(rc, 0)
+        self.assertEqual(run_mock.call_count, 1)
+        first_cmd = run_mock.call_args_list[0].args[0]
+        self.assertEqual(first_cmd[:2], ["docker", "ps"])
+
+    def test_serve_kill_all_active_containers(self) -> None:
+        with mock.patch("deterministic_inference.serving.subprocess.run") as run_mock:
+            def _fake_run(cmd, **kwargs):
+                if cmd[:2] == ["docker", "ps"]:
+                    return mock.Mock(
+                        returncode=0,
+                        stdout=(
+                            "abc123\tvllm-one\tdocker.io/vllm/a@sha256:111\tUp 2 minutes\t0.0.0.0:8123->8000/tcp\n"
+                            "def456\tvllm-two\tdocker.io/vllm/b@sha256:222\tUp 1 minute\t0.0.0.0:8124->8000/tcp\n"
+                        ),
+                        stderr="",
+                    )
+                return mock.Mock(returncode=0, stdout="", stderr="")
+
+            run_mock.side_effect = _fake_run
+            rc = workflow.main(["serve", "kill"])
+
+        self.assertEqual(rc, 0)
+        self.assertEqual(run_mock.call_count, 2)
+        second_cmd = run_mock.call_args_list[1].args[0]
+        self.assertEqual(second_cmd, ["docker", "rm", "-f", "vllm-one", "vllm-two"])
+
+    def test_serve_kill_by_name_rejects_missing_container(self) -> None:
+        with mock.patch("deterministic_inference.serving.subprocess.run") as run_mock:
+            run_mock.return_value = mock.Mock(
+                returncode=0,
+                stdout="abc123\tvllm-one\tdocker.io/vllm/a@sha256:111\tUp 2 minutes\t0.0.0.0:8123->8000/tcp\n",
+                stderr="",
+            )
+
+            rc = workflow.main(["serve", "kill", "--name", "vllm-two"])
+
+        self.assertEqual(rc, 1)
+        self.assertEqual(run_mock.call_count, 1)
 
 
 class _FakeHTTPResponse:

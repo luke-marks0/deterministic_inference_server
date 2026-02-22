@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "kind": "vllm.determinism_verify_report",
+  "created_at": "2026-02-22T06:07:40Z",
+  "bundle_a": {
+    "path": "/home/ubuntu/deterministic_inference_server/runs/qwen3-8b/6ad2178eea80b05179fa8302c3ad6fe3607a3d9dfdafca5db105de930f52f13f/bundle.json",
+    "run_id": "6ad2178eea80b05179fa8302c3ad6fe3607a3d9dfdafca5db105de930f52f13f"
+  },
+  "bundle_b": {
+    "path": "/home/ubuntu/deterministic_inference_server/runs/qwen3-8b/32bf84da2a6264fa49d9392069ff52e158e241c9b5a891cf397f4692d3a0254b/bundle.json",
+    "run_id": "32bf84da2a6264fa49d9392069ff52e158e241c9b5a891cf397f4692d3a0254b"
+  },
+  "comparisons": {
+    "tokens": {
+      "exact_match": true,
+      "mismatched_sequences": 0,
+      "first_divergence": null,
+      "counts": {
+        "sequence_count_a": 100,
+        "sequence_count_b": 100
+      },
+      "numeric_diff_stats": {
+        "max_abs_diff": 0,
+        "max_rel_diff": 0.0,
+        "ulp_stats": {
+          "supported": false,
+          "note": "ULP stats are not computed for token id comparisons."
+        }
+      },
+      "rule": "exact"
+    },
+    "batch_trace": {
+      "status": "compared",
+      "exact_match": true,
+      "first_divergence": null
+    },
+    "logits": {
+      "status": "disabled"
+    },
+    "activations": {
+      "status": "disabled"
+    },
+    "engine_trace": {
+      "status": "disabled"
+    }
+  },
+  "environment_diffs": {
+    "runtime_closure_digest_match": true,
+    "manifest_id_match": true,
+    "lock_id_match": true,
+    "hardware_fingerprint_match": false,
+    "token_compare_rule_match": true
+  },
+  "determinism_grade": "conformant"
+}

@@ -9,7 +9,13 @@ from .common import _normalize_real_digest, _repo_root, _utc_now, _write_json
 from .execution import execute_run
 from .locking import _validate_lock_payload, build_lock_payload, build_runtime_payload, load_lock, resolve_lock_path
 from .schema import compute_manifest_id, create_manifest_template, load_manifest, validate_manifest
-from .serving import build_serve_plan, run_serve_plan, wait_for_openai_server
+from .serving import (
+    build_serve_plan,
+    kill_serve_containers,
+    list_active_serve_containers,
+    run_serve_plan,
+    wait_for_openai_server,
+)
 from .verification import create_bundle_archive, inspect_payload, verify_bundles
 
 def _parse_manifest_path(raw: str) -> Path:
@@ -71,8 +77,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Disable pre-run artifact digest verification against the lockfile.",
     )
 
-    serve_parser = subparsers.add_parser("serve", help="Start a vLLM server using docker compose.")
-    serve_parser.add_argument("--config", required=True, help="Manifest path.")
+    serve_parser = subparsers.add_parser("serve", help="Manage vLLM servers using docker compose.")
+    serve_parser.add_argument(
+        "action",
+        nargs="?",
+        choices=["start", "list", "kill"],
+        default="start",
+        help="Serve action. Defaults to 'start'.",
+    )
+    serve_parser.add_argument("--config", help="Manifest path (required for start action).")
     serve_parser.add_argument("--image", default="", help="vLLM image (or set VLLM_IMAGE).")
     serve_parser.add_argument(
         "--container-port",
@@ -88,6 +101,12 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=180,
         help="Maximum wait time for server readiness.",
+    )
+    serve_parser.add_argument(
+        "--name",
+        action="append",
+        default=[],
+        help="Container name/id for kill action (repeatable). If omitted, kill targets all active serve containers.",
     )
 
     bootstrap_parser = subparsers.add_parser(
@@ -248,6 +267,55 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "serve":
+        if args.action == "list":
+            containers = list_active_serve_containers()
+            if not containers:
+                print("No active vLLM serve containers found.")
+                return 0
+            print("Active vLLM serve containers:")
+            for container in containers:
+                print(
+                    f"  {container.name} ({container.container_id}) "
+                    f"image={container.image} status={container.status} ports={container.ports}"
+                )
+            return 0
+
+        if args.action == "kill":
+            requested_names = [str(name).strip() for name in args.name if str(name).strip()]
+            if requested_names:
+                active_containers = list_active_serve_containers()
+                by_name = {container.name: container for container in active_containers}
+                by_id = {container.container_id: container for container in active_containers}
+                selected: list[str] = []
+                missing: list[str] = []
+                for requested in requested_names:
+                    container = by_name.get(requested) or by_id.get(requested)
+                    if container is None:
+                        missing.append(requested)
+                    else:
+                        selected.append(container.name)
+                if missing:
+                    print(
+                        "No active vLLM serve containers matched: "
+                        + ", ".join(missing)
+                    )
+                    return 1
+                killed = kill_serve_containers(names=selected)
+            else:
+                killed = kill_serve_containers()
+
+            if not killed:
+                print("No active vLLM serve containers found.")
+                return 0
+
+            print("Killed vLLM serve containers:")
+            for name in killed:
+                print(f"  {name}")
+            return 0
+
+        if not args.config:
+            raise SystemExit("serve start requires --config.")
+
         manifest_path = _parse_manifest_path(args.config)
         manifest = load_manifest(manifest_path)
         image_override = str(args.image).strip() or None

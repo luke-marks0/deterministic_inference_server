@@ -25,6 +25,15 @@ class ServePlan:
     served_model_name: str
 
 
+@dataclass(frozen=True)
+class ActiveServeContainer:
+    container_id: str
+    name: str
+    image: str
+    status: str
+    ports: str
+
+
 def _required_non_empty_string(value: Any, *, field_path: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field_path}: expected non-empty string.")
@@ -120,6 +129,13 @@ def build_serve_plan(
     container_name = _safe_container_name(
         _required_non_empty_string(manifest["metadata"].get("name"), field_path="metadata.name")
     )
+    runtime_env = manifest["runtime"]["env"]
+    cuda_env = manifest["cuda_stack"]["env"]
+    vllm_env = manifest["vllm"]["env"]
+    thread_settings = manifest["runtime"]["threads"]
+    locale_settings = manifest["runtime"]["locale"]
+    engine_args = manifest["vllm"]["engine_args"]
+    batching = manifest["inference"]["batching"]
 
     env = dict(os.environ)
     env.update(
@@ -132,8 +148,32 @@ def build_serve_plan(
             "VLLM_CONTAINER_PORT": str(container_port),
             "VLLM_HOST": "0.0.0.0",
             "CONTAINER_NAME": container_name,
+            "VLLM_DTYPE": str(engine_args.get("dtype", "auto")),
+            "VLLM_TENSOR_PARALLEL_SIZE": str(engine_args.get("tensor_parallel_size", 1)),
+            "VLLM_PIPELINE_PARALLEL_SIZE": str(engine_args.get("pipeline_parallel_size", 1)),
+            "VLLM_MAX_MODEL_LEN": str(engine_args.get("max_model_len", 32768)),
+            "VLLM_MAX_NUM_SEQS": str(batching["max_num_seqs"]),
+            "VLLM_MAX_NUM_BATCHED_TOKENS": str(batching["max_num_batched_tokens"]),
         }
     )
+    for block in (runtime_env, cuda_env, vllm_env):
+        for key, value in block.items():
+            env[str(key)] = str(value)
+    env["OMP_NUM_THREADS"] = str(thread_settings["omp_num_threads"])
+    env["MKL_NUM_THREADS"] = str(thread_settings["mkl_num_threads"])
+    env["LANG"] = str(locale_settings["lang"])
+    env["LC_ALL"] = str(locale_settings["lang"])
+    env["TZ"] = str(locale_settings["tz"])
+    if (
+        env.get("VLLM_BATCH_INVARIANT", "") == "1"
+        and str(engine_args.get("dtype", "")).strip().lower() == "float16"
+    ):
+        # vLLM batch_invariant currently fails on fp16 log-softmax paths.
+        env["VLLM_BATCH_INVARIANT"] = "0"
+    if env.get("VLLM_BATCH_INVARIANT", "") == "1":
+        attention_backend = str(env.get("VLLM_ATTENTION_BACKEND", "")).strip()
+        if not attention_backend:
+            env["VLLM_ATTENTION_BACKEND"] = "FLASH_ATTN"
 
     hf_home = env.get("HF_HOME", "").strip()
     if not hf_home:
@@ -221,6 +261,62 @@ def run_serve_plan(plan: ServePlan, *, pull: bool = False) -> None:
         check=True,
         env=plan.env,
     )
+
+
+def list_active_serve_containers(*, env: dict[str, str] | None = None) -> list[ActiveServeContainer]:
+    effective_env = os.environ if env is None else env
+    result = subprocess.run(
+        [
+            "docker",
+            "ps",
+            "--filter",
+            "label=com.docker.compose.service=vllm",
+            "--format",
+            "{{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=effective_env,
+    )
+    containers: list[ActiveServeContainer] = []
+    for raw_line in result.stdout.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = line.split("\t")
+        if len(parts) < 5:
+            continue
+        containers.append(
+            ActiveServeContainer(
+                container_id=parts[0],
+                name=parts[1],
+                image=parts[2],
+                status=parts[3],
+                ports=parts[4],
+            )
+        )
+    return containers
+
+
+def kill_serve_containers(
+    *,
+    names: list[str] | None = None,
+    env: dict[str, str] | None = None,
+) -> list[str]:
+    targets = [name.strip() for name in (names or []) if name.strip()]
+    if not targets:
+        targets = [container.name for container in list_active_serve_containers(env=env)]
+    if not targets:
+        return []
+
+    effective_env = os.environ if env is None else env
+    subprocess.run(
+        ["docker", "rm", "-f", *targets],
+        check=True,
+        env=effective_env,
+    )
+    return targets
 
 
 def wait_for_openai_server(

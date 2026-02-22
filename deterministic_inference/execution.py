@@ -372,7 +372,17 @@ def _request_prompt_token_ids(request: dict[str, Any]) -> list[int]:
     raise ValueError("Request is missing prompt/messages/prompt_token_ids.")
 
 
-def _extract_generated_token_ids(response: dict[str, Any], prompt_len: int) -> list[int]:
+def _request_prompt_text(request: dict[str, Any]) -> str:
+    if isinstance(request.get("prompt"), str):
+        return str(request["prompt"])
+    if isinstance(request.get("messages"), list):
+        return "\n".join(
+            f"{message['role']}:{message['content']}" for message in request["messages"]
+        )
+    raise ValueError("Request is missing prompt/messages for text prompt generation.")
+
+
+def _extract_response_token_ids(response: dict[str, Any]) -> list[int]:
     choices = response.get("choices")
     if not isinstance(choices, list) or not choices:
         raise ValueError("No choices returned in completion response.")
@@ -392,8 +402,8 @@ def _extract_generated_token_ids(response: dict[str, Any], prompt_len: int) -> l
             for row in content
             if isinstance(row, dict) and isinstance(row.get("token_id"), int)
         ]
-        if len(token_ids) >= prompt_len:
-            return token_ids[prompt_len:]
+        if token_ids:
+            return token_ids
 
     tokens = logprobs.get("tokens")
     if isinstance(tokens, list):
@@ -407,8 +417,8 @@ def _extract_generated_token_ids(response: dict[str, Any], prompt_len: int) -> l
                 maybe_ids = []
                 break
             maybe_ids.append(int(match.group(1)))
-        if maybe_ids and len(maybe_ids) >= prompt_len:
-            return maybe_ids[prompt_len:]
+        if maybe_ids:
+            return maybe_ids
 
     raise ValueError(
         "Unable to parse token ids from response. "
@@ -440,18 +450,27 @@ def _mock_generate_tokens(prompt_token_ids: list[int], *, seed: int, max_tokens:
 def _openai_generate_tokens(
     *,
     request: dict[str, Any],
-    prompt_token_ids: list[int],
     manifest: dict[str, Any],
-) -> tuple[list[int], int]:
+) -> tuple[list[int], list[int], int]:
     sampling = request["sampling"]
     execution = manifest["runtime"]["execution"]
     base_url = str(execution["base_url"]).rstrip("/")
     timeout_seconds = int(execution["timeout_seconds"])
     model_name = str(manifest["vllm"]["engine_args"].get("model", ""))
+    explicit_prompt_token_ids = (
+        [int(token) for token in request["prompt_token_ids"]]
+        if isinstance(request.get("prompt_token_ids"), list)
+        else None
+    )
+    prompt_payload: str | list[int]
+    if explicit_prompt_token_ids is not None:
+        prompt_payload = explicit_prompt_token_ids
+    else:
+        prompt_payload = _request_prompt_text(request)
 
     payload = {
         "model": model_name,
-        "prompt": prompt_token_ids,
+        "prompt": prompt_payload,
         "max_tokens": int(sampling["max_tokens"]),
         "temperature": float(sampling["temperature"]),
         "top_p": float(sampling["top_p"]),
@@ -463,42 +482,80 @@ def _openai_generate_tokens(
     }
 
     response = _post_json(f"{base_url}/v1/completions", payload, timeout_seconds)
-    output_ids = _extract_generated_token_ids(response, prompt_len=len(prompt_token_ids))
+    token_ids = _extract_response_token_ids(response)
 
     usage = response.get("usage")
+    prompt_tokens = None
     completion_tokens = None
     if isinstance(usage, dict):
+        raw_prompt = usage.get("prompt_tokens")
+        if isinstance(raw_prompt, int):
+            prompt_tokens = raw_prompt
         raw_completion = usage.get("completion_tokens")
         if isinstance(raw_completion, int):
             completion_tokens = raw_completion
 
-    if completion_tokens is None:
-        completion_tokens = len(output_ids)
+    if prompt_tokens is None and explicit_prompt_token_ids is not None:
+        prompt_tokens = len(explicit_prompt_token_ids)
 
-    return output_ids, completion_tokens
+    if prompt_tokens is None and completion_tokens is not None:
+        prompt_tokens = len(token_ids) - completion_tokens
+    if completion_tokens is None and prompt_tokens is not None:
+        completion_tokens = len(token_ids) - prompt_tokens
+
+    if prompt_tokens is None or completion_tokens is None:
+        raise ValueError(
+            "Unable to determine prompt/completion token split from completion response usage. "
+            "Expected usage.prompt_tokens and/or usage.completion_tokens."
+        )
+
+    if prompt_tokens < 0 or completion_tokens < 0:
+        raise ValueError(
+            f"Invalid token counts in completion usage: prompt_tokens={prompt_tokens}, "
+            f"completion_tokens={completion_tokens}."
+        )
+
+    split_index = prompt_tokens
+    if split_index > len(token_ids):
+        raise ValueError(
+            "Completion response usage.prompt_tokens exceeds parsed token id payload. "
+            f"prompt_tokens={prompt_tokens}, parsed_tokens={len(token_ids)}."
+        )
+
+    prompt_token_ids = token_ids[:split_index]
+    output_ids = token_ids[split_index:]
+
+    if completion_tokens != len(output_ids):
+        if completion_tokens > len(output_ids):
+            raise ValueError(
+                "Completion response usage.completion_tokens exceeds parsed output token payload. "
+                f"completion_tokens={completion_tokens}, parsed_output_tokens={len(output_ids)}."
+            )
+        output_ids = output_ids[:completion_tokens]
+
+    return prompt_token_ids, output_ids, len(output_ids)
 
 
 def _generate_tokens_for_request(
     *,
     request: dict[str, Any],
-    prompt_token_ids: list[int],
     manifest: dict[str, Any],
-) -> tuple[list[int], int]:
+) -> tuple[list[int], list[int], int]:
     backend = str(manifest["runtime"]["execution"]["backend"])
     sampling = request["sampling"]
 
     if backend == "mock":
+        prompt_token_ids = _request_prompt_token_ids(request)
         output_ids = _mock_generate_tokens(
             prompt_token_ids,
             seed=int(sampling["seed"]),
             max_tokens=int(sampling["max_tokens"]),
         )
-        return output_ids, len(output_ids)
+        return prompt_token_ids, output_ids, len(output_ids)
 
     if backend == "openai_compatible":
         return _openai_generate_tokens(
             request=request,
-            prompt_token_ids=prompt_token_ids,
             manifest=manifest,
         )
 
@@ -773,10 +830,8 @@ def execute_run(
             )
 
             for request in batch:
-                prompt_token_ids = _request_prompt_token_ids(request)
-                output_token_ids, completion_count = _generate_tokens_for_request(
+                prompt_token_ids, output_token_ids, completion_count = _generate_tokens_for_request(
                     request=request,
-                    prompt_token_ids=prompt_token_ids,
                     manifest=manifest,
                 )
                 sequences.append(

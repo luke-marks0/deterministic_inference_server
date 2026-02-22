@@ -17,8 +17,19 @@ services:
     environment:
       HF_HOME: ${HF_HOME:-/data/hf}
       HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
+      PYTHONHASHSEED: "${PYTHONHASHSEED:-0}"
+      OMP_NUM_THREADS: "${OMP_NUM_THREADS:-1}"
+      MKL_NUM_THREADS: "${MKL_NUM_THREADS:-1}"
+      CUDA_DEVICE_ORDER: "${CUDA_DEVICE_ORDER:-PCI_BUS_ID}"
+      CUDA_VISIBLE_DEVICES: "${CUDA_VISIBLE_DEVICES:-0}"
       CUDA_DEVICE_MAX_CONNECTIONS: "${CUDA_DEVICE_MAX_CONNECTIONS:-1}"
       CUBLAS_WORKSPACE_CONFIG: "${CUBLAS_WORKSPACE_CONFIG:-:4096:8}"
+      VLLM_BATCH_INVARIANT: "${VLLM_BATCH_INVARIANT:-1}"
+      VLLM_ENABLE_V1_MULTIPROCESSING: "${VLLM_ENABLE_V1_MULTIPROCESSING:-0}"
+      VLLM_ATTENTION_BACKEND: "${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}"
+      LANG: ${LANG:-C.UTF-8}
+      LC_ALL: ${LC_ALL:-C.UTF-8}
+      TZ: ${TZ:-UTC}
     command:
       - --model
       - ${MODEL_ID}
@@ -26,6 +37,20 @@ services:
       - ${MODEL_REVISION}
       - --served-model-name
       - ${SERVED_MODEL_NAME}
+      - --dtype
+      - ${VLLM_DTYPE:-auto}
+      - --tensor-parallel-size
+      - "${VLLM_TENSOR_PARALLEL_SIZE:-1}"
+      - --pipeline-parallel-size
+      - "${VLLM_PIPELINE_PARALLEL_SIZE:-1}"
+      - --max-model-len
+      - "${VLLM_MAX_MODEL_LEN:-32768}"
+      - --max-num-seqs
+      - "${VLLM_MAX_NUM_SEQS:-1}"
+      - --max-num-batched-tokens
+      - "${VLLM_MAX_NUM_BATCHED_TOKENS:-8192}"
+      - --attention-backend
+      - "${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}"
       - --host
       - ${VLLM_HOST:-0.0.0.0}
       - --port

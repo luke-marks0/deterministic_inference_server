@@ -1,0 +1,11 @@
+verify_report: /home/ubuntu/deterministic_inference_server/state/verify/20260222T073728Z/verify_report.json
+bundle_a: /home/ubuntu/deterministic_inference_server/runs/gpt-oss-20b/7ad1a309f00ac57e2b14157ccb6e8a2e47fb36cd01648137d145c706154dd2f3/bundle.json
+bundle_b: /home/ubuntu/deterministic_inference_server/runs/gpt-oss-20b/b2a2ec68ee262b04defd06e29365bb34f27563fe198d5c53bb4e21ec116ba91b/bundle.json
+determinism_grade: conformant
+tokens_exact_match: True
+first_divergence: None
+runtime_closure_digest_match: True
+manifest_id_match: True
+lock_id_match: True
+token_compare_rule_match: True
+batch_trace_exact_match: True

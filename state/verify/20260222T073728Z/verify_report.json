@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "kind": "vllm.determinism_verify_report",
+  "created_at": "2026-02-22T07:37:28Z",
+  "bundle_a": {
+    "path": "/home/ubuntu/deterministic_inference_server/runs/gpt-oss-20b/7ad1a309f00ac57e2b14157ccb6e8a2e47fb36cd01648137d145c706154dd2f3/bundle.json",
+    "run_id": "7ad1a309f00ac57e2b14157ccb6e8a2e47fb36cd01648137d145c706154dd2f3"
+  },
+  "bundle_b": {
+    "path": "/home/ubuntu/deterministic_inference_server/runs/gpt-oss-20b/b2a2ec68ee262b04defd06e29365bb34f27563fe198d5c53bb4e21ec116ba91b/bundle.json",
+    "run_id": "b2a2ec68ee262b04defd06e29365bb34f27563fe198d5c53bb4e21ec116ba91b"
+  },
+  "comparisons": {
+    "tokens": {
+      "exact_match": true,
+      "mismatched_sequences": 0,
+      "first_divergence": null,
+      "counts": {
+        "sequence_count_a": 100,
+        "sequence_count_b": 100
+      },
+      "numeric_diff_stats": {
+        "max_abs_diff": 0,
+        "max_rel_diff": 0.0,
+        "ulp_stats": {
+          "supported": false,
+          "note": "ULP stats are not computed for token id comparisons."
+        }
+      },
+      "rule": "exact"
+    },
+    "batch_trace": {
+      "status": "compared",
+      "exact_match": true,
+      "first_divergence": null
+    },
+    "logits": {
+      "status": "disabled"
+    },
+    "activations": {
+      "status": "disabled"
+    },
+    "engine_trace": {
+      "status": "disabled"
+    }
+  },
+  "environment_diffs": {
+    "runtime_closure_digest_match": true,
+    "manifest_id_match": true,
+    "lock_id_match": true,
+    "hardware_fingerprint_match": false,
+    "token_compare_rule_match": true
+  },
+  "determinism_grade": "conformant"
+}

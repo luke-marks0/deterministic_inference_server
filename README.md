@@ -65,6 +65,12 @@ python -m deterministic_inference.cli build --config configs/my-model.json --upd
 python -m deterministic_inference.cli serve \
   --config configs/my-model.json
 
+# 5b) List active vLLM serve containers
+python -m deterministic_inference.cli serve list
+
+# 5c) Kill active vLLM serve containers
+python -m deterministic_inference.cli serve kill
+
 # 6) Execute run and emit bundle + tokens + run log
 python -m deterministic_inference.cli run --config configs/my-model.json
 
@@ -87,7 +93,7 @@ python -m deterministic_inference.cli inspect --input runs/<run_id>/bundle.json
 - `init`: create a new manifest template
 - `lock`: resolve and write lockfile with artifact digests/runtime digest
 - `build`: emit runtime closure metadata (`--update-lock` optionally rewrites lock)
-- `serve`: start a vLLM docker-compose service from manifest settings
+- `serve`: manage vLLM docker-compose services (`start`, `list`, `kill`)
 - `run`: execute inference and emit run bundle artifacts
 - `verify`: compare two bundles and emit report + summary
 - `bundle`: tar/gzip a run directory
