@@ -1,112 +1,112 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "bdfebdafab57dce401e509904c05a56adb5ded0ed1c07a7f0bd87babe6e8bce0",
-  "generated_at": "2026-02-21T12:58:34Z",
+  "manifest_id": "cd37ce61bcc97e5f4f6aa1fa069681f2dfa83666e7f54f75e0083202129ace35",
+  "generated_at": "2026-02-23T15:47:38Z",
   "lock_algorithm": "sha256",
-  "runtime_closure_digest": "8844244c07d79c72816187dc52fd3e80b9014206a06f8d904640d0d9caf599b0",
+  "runtime_closure_digest": "c108d9b5873b55b2af3a7d2fadbc036c67f3d349c990ad3f73b83f512ecf64a3",
   "artifacts": [
     {
       "name": "model.weight",
       "path": "model.safetensors",
-      "digest": "sha256:unset",
+      "digest": "78aabeff924ca0cd5a30354e315bb6e61c2aadb5dd407ee033fa19747668bce7",
       "retrieval": {
         "type": "huggingface",
         "repo": "openai/gpt-oss-120b",
-        "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f"
+        "revision": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer.json",
-      "digest": "sha256:unset",
+      "digest": "3dc100dcb1ef4ba1da5d76f56e46c5e3299ace69edda57166f6e39ca7e8d8247",
       "retrieval": {
         "type": "huggingface",
         "repo": "openai/gpt-oss-120b",
-        "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f"
+        "revision": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer_config.json",
-      "digest": "sha256:unset",
+      "digest": "eda3200ce3482f107b4b60b7ee209e96988013b0df9181a198ea512d84aaca75",
       "retrieval": {
         "type": "huggingface",
         "repo": "openai/gpt-oss-120b",
-        "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f"
+        "revision": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "special_tokens_map.json",
-      "digest": "sha256:unset",
+      "digest": "83106f0cafb29adb4452ba0e2df1129257dd33434129b441cb0c060de9a99159",
       "retrieval": {
         "type": "huggingface",
         "repo": "openai/gpt-oss-120b",
-        "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f"
+        "revision": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
       }
     },
     {
       "name": "model.config",
       "path": "config.json",
-      "digest": "sha256:unset",
+      "digest": "038a5e507ed6f58d51bf681693858701051236db2b569853c92474ca3c8d4b11",
       "retrieval": {
         "type": "huggingface",
         "repo": "openai/gpt-oss-120b",
-        "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f"
+        "revision": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
       }
     },
     {
       "name": "model.config",
       "path": "generation_config.json",
-      "digest": "sha256:unset",
+      "digest": "d4e504ddd1601b1c0a6bc6066d3d3d3e28fbee6a00da3ec74170de0cf0b639f8",
       "retrieval": {
         "type": "huggingface",
         "repo": "openai/gpt-oss-120b",
-        "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f"
+        "revision": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
       }
     },
     {
       "name": "model.chat_template",
       "path": "chat_template.jinja",
-      "digest": "sha256:unset",
+      "digest": "c1d7165969e897224a25530ee2b3f88dfd6edad1d64fa6921ea7e4d71f9d3d11",
       "retrieval": {
         "type": "huggingface",
         "repo": "openai/gpt-oss-120b",
-        "revision": "b5c939de8f10f908e3f9a7457cd7f01a4d97869f"
+        "revision": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a"
       }
     },
     {
       "name": "python.package.vllm",
       "path": "",
-      "digest": "sha256:unset",
+      "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b",
       "retrieval": {
         "type": "wheel",
-        "digest": "sha256:unset"
+        "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
       }
     },
     {
       "name": "python.package.torch",
       "path": "",
-      "digest": "sha256:unset",
+      "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937",
       "retrieval": {
         "type": "wheel",
-        "digest": "sha256:unset"
+        "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
       }
     },
     {
       "name": "python.package.triton",
       "path": "",
-      "digest": "sha256:unset",
+      "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3",
       "retrieval": {
         "type": "wheel",
-        "digest": "sha256:unset"
+        "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
       }
     },
     {
       "name": "cuda.userspace.cuda_toolkit",
       "path": "cuda_toolkit",
-      "digest": "sha256:unset",
+      "digest": "621e155eb77a75e6f2c4d4cf65177ffd2aa9a2625712443bc35657dc48bc141e",
       "retrieval": {
         "version": "12.x"
       }
@@ -114,7 +114,7 @@
     {
       "name": "cuda.userspace.cublas",
       "path": "cublas",
-      "digest": "sha256:unset",
+      "digest": "7b42da2c381b1945ab964ab47d5e3eb55c68e5bfe9713adc2a34ff8ad58f3827",
       "retrieval": {
         "version": "12.x"
       }
@@ -122,7 +122,7 @@
     {
       "name": "cuda.userspace.cudnn",
       "path": "cudnn",
-      "digest": "sha256:unset",
+      "digest": "1218bedb143a5ce463ea551e7530e9c3dd803364b130439b4c182e1aaa5dfa4d",
       "retrieval": {
         "version": "9.x"
       }
@@ -130,12 +130,21 @@
     {
       "name": "cuda.userspace.nccl",
       "path": "nccl",
-      "digest": "sha256:unset",
+      "digest": "c12e64d2c825bbe6b87b17a77c8ecd78e9bdc7126a38867a878e690478ca56e0",
       "retrieval": {
         "version": "2.x"
+      }
+    },
+    {
+      "name": "inference.prompt_dataset",
+      "path": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json",
+      "digest": "20e27e9c4367c25954f7975669dd6dc1c43ebbd8148f6d08136a3833c793e082",
+      "retrieval": {
+        "type": "local_file",
+        "local_file": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json"
       }
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "8793de1193970611e45a47f11655f2459e9b205fca48b6e827b7ce31c0060dc0"
+  "lock_id": "8e9f7c831b017280957d42e4a022a73edd09591743b34a8d24be1316193a20cf"
 }
