@@ -331,9 +331,66 @@ def _validate_vllm(vllm: dict[str, Any], errors: list[str]) -> None:
 
     engine_args = vllm.get("engine_args")
     if isinstance(engine_args, dict):
+        engine_allowed = {
+            "model",
+            "trust_remote_code",
+            "dtype",
+            "tensor_parallel_size",
+            "pipeline_parallel_size",
+            "max_model_len",
+            "max_num_batched_tokens",
+            "gpu_memory_utilization",
+            "enable_auto_tool_choice",
+            "tool_call_parser",
+            "reasoning_parser",
+        }
+        _reject_unknown_keys(engine_args, engine_allowed, path=f"{path}.engine_args", errors=errors)
+
+        model_name = engine_args.get("model")
+        if model_name is not None and (not isinstance(model_name, str) or not model_name.strip()):
+            errors.append(f"{path}.engine_args.model: expected non-empty string when provided.")
+
         trust_remote_code = engine_args.get("trust_remote_code")
         if trust_remote_code is not None and not isinstance(trust_remote_code, bool):
             errors.append(f"{path}.engine_args.trust_remote_code: expected bool when provided.")
+
+        dtype = engine_args.get("dtype")
+        if dtype is not None and (not isinstance(dtype, str) or not dtype.strip()):
+            errors.append(f"{path}.engine_args.dtype: expected non-empty string when provided.")
+
+        for key in ("tensor_parallel_size", "pipeline_parallel_size", "max_model_len", "max_num_batched_tokens"):
+            value = engine_args.get(key)
+            if value is None:
+                continue
+            if not isinstance(value, int) or value <= 0:
+                errors.append(f"{path}.engine_args.{key}: expected int > 0 when provided.")
+
+        gpu_memory_utilization = engine_args.get("gpu_memory_utilization")
+        if gpu_memory_utilization is not None:
+            if not isinstance(gpu_memory_utilization, (int, float)):
+                errors.append(f"{path}.engine_args.gpu_memory_utilization: expected number in (0, 1].")
+            else:
+                normalized = float(gpu_memory_utilization)
+                if normalized <= 0.0 or normalized > 1.0:
+                    errors.append(f"{path}.engine_args.gpu_memory_utilization: expected number in (0, 1].")
+
+        enable_auto_tool_choice = engine_args.get("enable_auto_tool_choice")
+        if enable_auto_tool_choice is not None and not isinstance(enable_auto_tool_choice, bool):
+            errors.append(f"{path}.engine_args.enable_auto_tool_choice: expected bool when provided.")
+
+        for key in ("tool_call_parser", "reasoning_parser"):
+            value = engine_args.get(key)
+            if value is None:
+                continue
+            if not isinstance(value, str) or not value.strip():
+                errors.append(f"{path}.engine_args.{key}: expected non-empty string when provided.")
+
+        if bool(engine_args.get("enable_auto_tool_choice", False)):
+            parser_name = engine_args.get("tool_call_parser")
+            if not isinstance(parser_name, str) or not parser_name.strip():
+                errors.append(
+                    f"{path}.engine_args.tool_call_parser: required when enable_auto_tool_choice=true."
+                )
 
 
 def _validate_model(model: dict[str, Any], errors: list[str]) -> None:
@@ -823,6 +880,23 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         _validate_outputs(outputs, errors)
     else:
         errors.append("outputs: expected object.")
+
+    try:
+        engine_args = manifest.get("vllm", {}).get("engine_args", {})
+        batching = manifest.get("inference", {}).get("batching", {})
+        engine_max_batched_tokens = engine_args.get("max_num_batched_tokens")
+        batching_max_batched_tokens = batching.get("max_num_batched_tokens")
+        if (
+            isinstance(engine_max_batched_tokens, int)
+            and isinstance(batching_max_batched_tokens, int)
+            and engine_max_batched_tokens != batching_max_batched_tokens
+        ):
+            errors.append(
+                "vllm.engine_args.max_num_batched_tokens must match "
+                "inference.batching.max_num_batched_tokens when provided."
+            )
+    except AttributeError:
+        errors.append("vllm.engine_args: expected object.")
 
     try:
         trust_remote_code = bool(

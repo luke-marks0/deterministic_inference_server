@@ -144,6 +144,20 @@ Image references must be digest-pinned (`...@sha256:<64-hex>`).
 Before starting the service, `serve` verifies the local image digest matches the pinned digest.
 Use `--pull` to fetch the pinned image first.
 
+`serve` currently maps and validates these `vllm.engine_args` keys:
+
+- `model`
+- `dtype`
+- `tensor_parallel_size`
+- `pipeline_parallel_size`
+- `max_model_len`
+- `max_num_batched_tokens` (must match `inference.batching.max_num_batched_tokens` when set)
+- `trust_remote_code`
+- `gpu_memory_utilization`
+- `enable_auto_tool_choice`
+- `tool_call_parser`
+- `reasoning_parser`
+
 Example:
 
 ```bash

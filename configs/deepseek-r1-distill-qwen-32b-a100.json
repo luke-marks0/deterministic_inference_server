@@ -2,8 +2,8 @@
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_manifest",
   "metadata": {
-    "name": "deepseek-v3-2",
-    "description": "Spec-aligned deterministic manifest for DeepSeek-V3.2.",
+    "name": "deepseek-r1-distill-qwen-32b-a100",
+    "description": "Spec-aligned deterministic manifest for DeepSeek-R1-Distill-Qwen-32B on A100-class GPUs.",
     "created_at": "2026-02-18T00:00:00Z",
     "owners": [
       "ml-platform@example.com"
@@ -46,7 +46,7 @@
       "type": "cas",
       "path": "state/store"
     },
-    "lockfile": "manifests/deepseek-v3-2/manifest.lock.json"
+    "lockfile": "manifests/deepseek-r1-distill-qwen-32b-a100/manifest.lock.json"
   },
   "software_stack": {
     "python": {
@@ -120,7 +120,7 @@
     "network_policy": "online_allowed",
     "execution": {
       "backend": "openai_compatible",
-      "base_url": "http://127.0.0.1:8004",
+      "base_url": "http://127.0.0.1:8005",
       "timeout_seconds": 1200,
       "deterministic_failure_policy": "warn_only",
       "vllm_image": "docker.io/vllm/vllm-openai@sha256:8c9aaddfa6011b9651d06834d2fb90bdb9ab6ced4b420ec76925024eb12b22d0"
@@ -129,37 +129,62 @@
   "vllm": {
     "mode": "server",
     "reproducibility": {
-      "enable_batch_invariance": false,
+      "enable_batch_invariance": true,
       "enable_v1_multiprocessing": false
     },
     "env": {
-      "VLLM_BATCH_INVARIANT": "0",
+      "VLLM_BATCH_INVARIANT": "1",
       "VLLM_ENABLE_V1_MULTIPROCESSING": "0",
-      "VLLM_ATTENTION_BACKEND": "FLASHMLA_SPARSE"
+      "VLLM_ATTENTION_BACKEND": "FLASH_ATTN"
     },
     "engine_args": {
-      "model": "deepseek-ai/DeepSeek-V3.2",
+      "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
       "trust_remote_code": false,
       "dtype": "bfloat16",
       "tensor_parallel_size": 8,
       "pipeline_parallel_size": 1,
-      "max_model_len": 32768,
-      "enable_auto_tool_choice": true,
-      "tool_call_parser": "deepseek_v32",
-      "reasoning_parser": "deepseek_v3"
+      "max_model_len": 32768
     }
   },
   "model": {
     "weights": {
       "source": {
         "type": "huggingface",
-        "repo": "deepseek-ai/DeepSeek-V3.2",
-        "revision": "a7e62ac04ecb2c0a54d736dc46601c5606cf10a6"
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
       },
       "files": [
         {
-          "path": "model.safetensors",
-          "digest": "7e33fbf711cd2f0d4855a75b09804060cc960901f121fadf1300bcb4f04ee25e"
+          "path": "model-00001-of-000008.safetensors",
+          "digest": "52addd84f7e83b6f5b54edfbcd11a9dc71ced13e63967e0e551fcdd071a09cac"
+        },
+        {
+          "path": "model-00002-of-000008.safetensors",
+          "digest": "7401ea9ee01963efcae3bc43c34b17546236e30abfb356541e56df7ab2872d9a"
+        },
+        {
+          "path": "model-00003-of-000008.safetensors",
+          "digest": "38b7e1968565c4334bae24082c262a337838d6520b590d4d0c3806df060d7a26"
+        },
+        {
+          "path": "model-00004-of-000008.safetensors",
+          "digest": "88f4a70419dc6c41779a88416baa0f4bad155e30c23dd8e90502bd98a32c9a49"
+        },
+        {
+          "path": "model-00005-of-000008.safetensors",
+          "digest": "45aee647ad5c930eb73896d507f0694b14218616cbe14b3f499eaab0eb5f1558"
+        },
+        {
+          "path": "model-00006-of-000008.safetensors",
+          "digest": "bc3c1a143d5b7144a6cf58a1de95981562fe27354edb7bda87433b8da869740e"
+        },
+        {
+          "path": "model-00007-of-000008.safetensors",
+          "digest": "bb06d0ea82ab4a42820683158375e979a72bf3e88ebf0eb52080f4dabd9e54b6"
+        },
+        {
+          "path": "model-00008-of-000008.safetensors",
+          "digest": "1a6b6f41ddd7d1c07d4fdb9a626f66cb9a0fb3138c7d1116fc528255c6bb2b2b"
         }
       ]
     },
@@ -167,15 +192,11 @@
       "files": [
         {
           "path": "tokenizer.json",
-          "digest": "c70f481a8a8a6ef85ff7ff73e3a82138108e7d0e12c1ccf858ede448e6a16064"
+          "digest": "88145e3c3249adc2546ede277e9819d6e405e19072456e4b521cbc724bd60773"
         },
         {
           "path": "tokenizer_config.json",
-          "digest": "5b55d51f31438a1ade81a174f50c333563fdd9f076383408f3e7483650033a61"
-        },
-        {
-          "path": "special_tokens_map.json",
-          "digest": "b7298ac3ddabf90e982f5c096ba543ec432ae6e659bc77c5cf4df3ee66678656"
+          "digest": "8ac8c85fb242563c2260baec0909debd69d718af6a0b3d90e6cab62b4d341cd5"
         }
       ]
     },
@@ -183,18 +204,18 @@
       "files": [
         {
           "path": "config.json",
-          "digest": "f2aaa7c6cbdf0b15fc2673ca2d69c2bd18101761503efab6e6db39eaf2f58442"
+          "digest": "2c003fe40b13d2d1f372254d77177ed753176150f3d424d1b5ad22ff1d78a987"
         },
         {
           "path": "generation_config.json",
-          "digest": "5ce506fc6aab2718a5a6d9dcb84c10f6cf01f8589c2604ecc532fea4a85fab1f"
+          "digest": "72cbec1015da9ed03ad025483005cbf6481403abf947adfd54e504d1a66a2126"
         }
       ]
     },
     "chat_template": {
       "file": {
-        "path": "chat_template.jinja",
-        "digest": "a995f51b70f68001f4792c4c26a74db39e82c2a61ebaa506c57c2c8aed303969"
+        "path": "tokenizer_config.json",
+        "digest": "8ac8c85fb242563c2260baec0909debd69d718af6a0b3d90e6cab62b4d341cd5"
       }
     }
   },
@@ -216,7 +237,7 @@
     },
     "batching": {
       "policy": "fixed",
-      "schedule": "offline_deterministic",
+      "schedule": "batch_invariant",
       "max_num_seqs": 1,
       "max_num_batched_tokens": 4096,
       "fixed_request_order": true,
@@ -242,7 +263,7 @@
     }
   },
   "outputs": {
-    "directory": "runs/deepseek-v3-2/${run_id}",
+    "directory": "runs/deepseek-r1-distill-qwen-32b-a100/${run_id}",
     "golden": {
       "enabled": false
     },

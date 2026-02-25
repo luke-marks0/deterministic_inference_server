@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "kind": "vllm.deterministic_inference_lock",
+  "manifest_id": "5e070c51d89e07188c1e69551c588d58e51273fff012968ebe0ecd9241c0b092",
+  "generated_at": "2026-02-25T15:37:57Z",
+  "lock_algorithm": "sha256",
+  "runtime_closure_digest": "e44c9e5594b88a9ef3e5c77e2b6ec23392cba0d176ed49ead95615c5880a014c",
+  "artifacts": [
+    {
+      "name": "model.weight",
+      "path": "model-00001-of-000008.safetensors",
+      "digest": "52addd84f7e83b6f5b54edfbcd11a9dc71ced13e63967e0e551fcdd071a09cac",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.weight",
+      "path": "model-00002-of-000008.safetensors",
+      "digest": "7401ea9ee01963efcae3bc43c34b17546236e30abfb356541e56df7ab2872d9a",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.weight",
+      "path": "model-00003-of-000008.safetensors",
+      "digest": "38b7e1968565c4334bae24082c262a337838d6520b590d4d0c3806df060d7a26",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.weight",
+      "path": "model-00004-of-000008.safetensors",
+      "digest": "88f4a70419dc6c41779a88416baa0f4bad155e30c23dd8e90502bd98a32c9a49",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.weight",
+      "path": "model-00005-of-000008.safetensors",
+      "digest": "45aee647ad5c930eb73896d507f0694b14218616cbe14b3f499eaab0eb5f1558",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.weight",
+      "path": "model-00006-of-000008.safetensors",
+      "digest": "bc3c1a143d5b7144a6cf58a1de95981562fe27354edb7bda87433b8da869740e",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.weight",
+      "path": "model-00007-of-000008.safetensors",
+      "digest": "bb06d0ea82ab4a42820683158375e979a72bf3e88ebf0eb52080f4dabd9e54b6",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.weight",
+      "path": "model-00008-of-000008.safetensors",
+      "digest": "1a6b6f41ddd7d1c07d4fdb9a626f66cb9a0fb3138c7d1116fc528255c6bb2b2b",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "tokenizer.json",
+      "digest": "88145e3c3249adc2546ede277e9819d6e405e19072456e4b521cbc724bd60773",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.tokenizer",
+      "path": "tokenizer_config.json",
+      "digest": "8ac8c85fb242563c2260baec0909debd69d718af6a0b3d90e6cab62b4d341cd5",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.config",
+      "path": "config.json",
+      "digest": "2c003fe40b13d2d1f372254d77177ed753176150f3d424d1b5ad22ff1d78a987",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.config",
+      "path": "generation_config.json",
+      "digest": "72cbec1015da9ed03ad025483005cbf6481403abf947adfd54e504d1a66a2126",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "model.chat_template",
+      "path": "tokenizer_config.json",
+      "digest": "8ac8c85fb242563c2260baec0909debd69d718af6a0b3d90e6cab62b4d341cd5",
+      "retrieval": {
+        "type": "huggingface",
+        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+      }
+    },
+    {
+      "name": "python.package.vllm",
+      "path": "",
+      "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
+      }
+    },
+    {
+      "name": "python.package.torch",
+      "path": "",
+      "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
+      }
+    },
+    {
+      "name": "python.package.triton",
+      "path": "",
+      "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3",
+      "retrieval": {
+        "type": "wheel",
+        "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
+      }
+    },
+    {
+      "name": "cuda.userspace.cuda_toolkit",
+      "path": "cuda_toolkit",
+      "digest": "621e155eb77a75e6f2c4d4cf65177ffd2aa9a2625712443bc35657dc48bc141e",
+      "retrieval": {
+        "version": "12.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.cublas",
+      "path": "cublas",
+      "digest": "7b42da2c381b1945ab964ab47d5e3eb55c68e5bfe9713adc2a34ff8ad58f3827",
+      "retrieval": {
+        "version": "12.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.cudnn",
+      "path": "cudnn",
+      "digest": "1218bedb143a5ce463ea551e7530e9c3dd803364b130439b4c182e1aaa5dfa4d",
+      "retrieval": {
+        "version": "9.x"
+      }
+    },
+    {
+      "name": "cuda.userspace.nccl",
+      "path": "nccl",
+      "digest": "c12e64d2c825bbe6b87b17a77c8ecd78e9bdc7126a38867a878e690478ca56e0",
+      "retrieval": {
+        "version": "2.x"
+      }
+    },
+    {
+      "name": "inference.prompt_dataset",
+      "path": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json",
+      "digest": "20e27e9c4367c25954f7975669dd6dc1c43ebbd8148f6d08136a3833c793e082",
+      "retrieval": {
+        "type": "local_file",
+        "local_file": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json"
+      }
+    }
+  ],
+  "compiled_extensions": [],
+  "lock_id": "1fe07fb663ed268f0f88981e081283b4a70c37ba292dd2419d3a36aa85f27714"
+}

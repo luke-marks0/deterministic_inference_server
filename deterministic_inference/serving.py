@@ -136,6 +136,10 @@ def build_serve_plan(
     locale_settings = manifest["runtime"]["locale"]
     engine_args = manifest["vllm"]["engine_args"]
     batching = manifest["inference"]["batching"]
+    max_num_batched_tokens = engine_args.get(
+        "max_num_batched_tokens",
+        batching["max_num_batched_tokens"],
+    )
 
     env = dict(os.environ)
     env.update(
@@ -153,9 +157,25 @@ def build_serve_plan(
             "VLLM_PIPELINE_PARALLEL_SIZE": str(engine_args.get("pipeline_parallel_size", 1)),
             "VLLM_MAX_MODEL_LEN": str(engine_args.get("max_model_len", 32768)),
             "VLLM_MAX_NUM_SEQS": str(batching["max_num_seqs"]),
-            "VLLM_MAX_NUM_BATCHED_TOKENS": str(batching["max_num_batched_tokens"]),
+            "VLLM_MAX_NUM_BATCHED_TOKENS": str(max_num_batched_tokens),
+            "VLLM_TRUST_REMOTE_CODE": "1" if bool(engine_args.get("trust_remote_code", False)) else "0",
+            "VLLM_ENABLE_AUTO_TOOL_CHOICE": (
+                "1" if bool(engine_args.get("enable_auto_tool_choice", False)) else "0"
+            ),
         }
     )
+    optional_engine_env = {
+        "gpu_memory_utilization": "VLLM_GPU_MEMORY_UTILIZATION",
+        "tool_call_parser": "VLLM_TOOL_CALL_PARSER",
+        "reasoning_parser": "VLLM_REASONING_PARSER",
+    }
+    for engine_key, env_key in optional_engine_env.items():
+        value = engine_args.get(engine_key)
+        if value is None:
+            env.pop(env_key, None)
+            continue
+        env[env_key] = str(value)
+
     for block in (runtime_env, cuda_env, vllm_env):
         for key, value in block.items():
             env[str(key)] = str(value)

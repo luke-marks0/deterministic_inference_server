@@ -179,6 +179,12 @@ class TestBootstrapAndServeCommands(unittest.TestCase):
             manifest["vllm"]["engine_args"]["tensor_parallel_size"] = 2
             manifest["vllm"]["engine_args"]["pipeline_parallel_size"] = 1
             manifest["vllm"]["engine_args"]["max_model_len"] = 12345
+            manifest["vllm"]["engine_args"]["max_num_batched_tokens"] = 2048
+            manifest["vllm"]["engine_args"]["gpu_memory_utilization"] = 0.95
+            manifest["vllm"]["engine_args"]["trust_remote_code"] = True
+            manifest["vllm"]["engine_args"]["enable_auto_tool_choice"] = True
+            manifest["vllm"]["engine_args"]["tool_call_parser"] = "kimi_k2"
+            manifest["vllm"]["engine_args"]["reasoning_parser"] = "qwen3"
             manifest["inference"]["batching"]["max_num_seqs"] = 2
             manifest["inference"]["batching"]["max_num_batched_tokens"] = 2048
 
@@ -198,6 +204,11 @@ class TestBootstrapAndServeCommands(unittest.TestCase):
             self.assertEqual(plan.env["VLLM_MAX_MODEL_LEN"], "12345")
             self.assertEqual(plan.env["VLLM_MAX_NUM_SEQS"], "2")
             self.assertEqual(plan.env["VLLM_MAX_NUM_BATCHED_TOKENS"], "2048")
+            self.assertEqual(plan.env["VLLM_GPU_MEMORY_UTILIZATION"], "0.95")
+            self.assertEqual(plan.env["VLLM_TRUST_REMOTE_CODE"], "1")
+            self.assertEqual(plan.env["VLLM_ENABLE_AUTO_TOOL_CHOICE"], "1")
+            self.assertEqual(plan.env["VLLM_TOOL_CALL_PARSER"], "kimi_k2")
+            self.assertEqual(plan.env["VLLM_REASONING_PARSER"], "qwen3")
 
     def test_build_serve_plan_disables_batch_invariant_for_fp16(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

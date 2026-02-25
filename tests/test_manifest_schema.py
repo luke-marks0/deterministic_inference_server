@@ -83,6 +83,40 @@ class TestManifestSchema(unittest.TestCase):
             with self.assertRaises(workflow.ManifestValidationError):
                 workflow.validate_manifest(manifest)
 
+    def test_unknown_engine_arg_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = Path(tmpdir) / "manifest.json"
+            manifest = make_manifest(manifest_path)
+            manifest["vllm"]["engine_args"]["unsupported_option"] = True
+            with self.assertRaises(workflow.ManifestValidationError):
+                workflow.validate_manifest(manifest)
+
+    def test_engine_arg_gpu_memory_utilization_must_be_in_range(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = Path(tmpdir) / "manifest.json"
+            manifest = make_manifest(manifest_path)
+            manifest["vllm"]["engine_args"]["gpu_memory_utilization"] = 1.5
+            with self.assertRaises(workflow.ManifestValidationError):
+                workflow.validate_manifest(manifest)
+
+    def test_engine_arg_max_num_batched_tokens_must_match_batching(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = Path(tmpdir) / "manifest.json"
+            manifest = make_manifest(manifest_path)
+            manifest["vllm"]["engine_args"]["max_num_batched_tokens"] = 1234
+            manifest["inference"]["batching"]["max_num_batched_tokens"] = 4096
+            with self.assertRaises(workflow.ManifestValidationError):
+                workflow.validate_manifest(manifest)
+
+    def test_enable_auto_tool_choice_requires_tool_call_parser(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manifest_path = Path(tmpdir) / "manifest.json"
+            manifest = make_manifest(manifest_path)
+            manifest["vllm"]["engine_args"]["enable_auto_tool_choice"] = True
+            manifest["vllm"]["engine_args"].pop("tool_call_parser", None)
+            with self.assertRaises(workflow.ManifestValidationError):
+                workflow.validate_manifest(manifest)
+
     def test_embedded_lock_object_is_valid(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             manifest_path = Path(tmpdir) / "manifest.json"
