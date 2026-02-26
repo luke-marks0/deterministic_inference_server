@@ -35,4 +35,8 @@ if [ -n "${VLLM_REASONING_PARSER:-}" ]; then
   set -- "$@" --reasoning-parser "${VLLM_REASONING_PARSER}"
 fi
 
+if [ -n "${VLLM_QUANTIZATION:-}" ]; then
+  set -- "$@" --quantization "${VLLM_QUANTIZATION}"
+fi
+
 exec vllm serve "$@"
