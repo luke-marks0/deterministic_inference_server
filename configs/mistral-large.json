@@ -3,7 +3,7 @@
   "kind": "vllm.deterministic_inference_manifest",
   "metadata": {
     "name": "mistral-large",
-    "description": "Spec-aligned deterministic manifest for Mistral-Large-Instruct-2411.",
+    "description": "Spec-aligned deterministic manifest for Mistral-Large-3-675B-Instruct-2512.",
     "created_at": "2026-02-20T13:13:18Z",
     "owners": [
       "ml-platform@example.com"
@@ -56,21 +56,21 @@
           "name": "vllm",
           "source": {
             "type": "wheel",
-            "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
+            "digest": "eb95e74b6cef26d36d56c7ed3248899f6c516aa146381cb9fd539f2c2ce8c30f"
           }
         },
         {
           "name": "torch",
           "source": {
             "type": "wheel",
-            "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
+            "digest": "86ef37aea48f78329aa9f400b781a92a981b5b9d3caa5d7d13a2666001c68bbd"
           }
         },
         {
           "name": "triton",
           "source": {
             "type": "wheel",
-            "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
+            "digest": "65de412003c4e2f91138d015fab9305dbdfce3d5f66feb536cf8abe2f92e75b6"
           }
         }
       ]
@@ -138,15 +138,21 @@
       "VLLM_DEEP_GEMM_WARMUP": "skip",
       "VLLM_USE_DEEP_GEMM": "0",
       "VLLM_MOE_USE_DEEP_GEMM": "0",
-      "VLLM_USE_FLASHINFER_MOE_FP8": "0"
+      "VLLM_USE_FLASHINFER_MOE_FP8": "0",
+      "VLLM_CPU_OFFLOAD_GB": "64",
+      "VLLM_ATTENTION_BACKEND": "TRITON_MLA",
+      "VLLM_TOKENIZER_MODE": "mistral",
+      "VLLM_CONFIG_FORMAT": "mistral",
+      "VLLM_LOAD_FORMAT": "mistral"
     },
     "engine_args": {
-      "model": "mistralai/Mistral-Large-Instruct-2411",
+      "model": "mistralai/Mistral-Large-3-675B-Instruct-2512",
       "trust_remote_code": false,
-      "dtype": "float16",
+      "dtype": "auto",
       "tensor_parallel_size": 8,
       "pipeline_parallel_size": 1,
-      "max_model_len": 131072,
+      "max_model_len": 16384,
+      "gpu_memory_utilization": 0.75,
       "enable_auto_tool_choice": true,
       "tool_call_parser": "mistral"
     }
@@ -155,13 +161,13 @@
     "weights": {
       "source": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "mistralai/Mistral-Large-3-675B-Instruct-2512",
+        "revision": "29842ca3976035f93553f34c885a9eb2a31a6d29"
       },
       "files": [
         {
           "path": "model.safetensors",
-          "digest": "346ba98dcfddc76781fa3f8ddcb78b18a740d20d56fd87f81f0cdffed1726d14"
+          "digest": "ec87174d82d9cdb7759e03f9c71947ca5465572d05eb119fea108dce80fff032"
         }
       ]
     },
@@ -169,15 +175,15 @@
       "files": [
         {
           "path": "tokenizer.json",
-          "digest": "b9c40d8cb851a6c9bea35a55bd32e0702be1641a6abe79e8b512f3826ba245af"
+          "digest": "f282a5563d064ca186b6d7f6834754286a4d2b2f93e57985315dcf1c79130cbf"
         },
         {
           "path": "tokenizer_config.json",
-          "digest": "fc656e9540b4e566daaf37cf98182843611f01f011f5b5d3bc0b5f4559dda235"
+          "digest": "5ba24c6f992ab1aeee3a3111f69fff5d2b9292d035a920c299e39d633862f528"
         },
         {
           "path": "special_tokens_map.json",
-          "digest": "2a587aec4bcbd60b238be17a3d2e4b70633d14355621151c659cc9f43b9d8aee"
+          "digest": "5ff28fb986c67ed00e0517eb6ab8d6317f18686f5c954a69fa4f8562f0a85c02"
         }
       ]
     },
@@ -185,18 +191,18 @@
       "files": [
         {
           "path": "config.json",
-          "digest": "f686ae408d197f1f3541b81a2feaab807403b7e8f2f3246b13c3bfe9210322b0"
+          "digest": "59099e4bee904e6d48b929bb6b2b00ff14b877eb29d7cee83be6722defce6ab3"
         },
         {
           "path": "generation_config.json",
-          "digest": "235fdbdc594d4480f37a312fc351c8a0c16f17c77acaba4f68175297539bd82f"
+          "digest": "8c0d10d4b1edaa8ca2fb3dc395f047dd0b42205eb9e4c675607c22dc8b91abbe"
         }
       ]
     },
     "chat_template": {
       "file": {
         "path": "chat_template.jinja",
-        "digest": "a3ccb7a54433ab4a8d6f607dee63366f553fe13fb2dc7b63473cd7cb811a5080"
+        "digest": "1b12e1671d0f115d4e2ba12876329170181d6f4372ec9fef0717a37d7ed2f450"
       }
     }
   },

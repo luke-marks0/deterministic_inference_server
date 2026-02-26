@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "a942a34efb13d89b88f45a101557f78b5a2c0c8715069a6f58c3490c31b92c55",
-  "generated_at": "2026-02-26T08:39:37Z",
+  "manifest_id": "96bea8767b43b2e1343f48a4213223b830d430daa8491d9afd6598fc831b105b",
+  "generated_at": "2026-02-26T13:28:17Z",
   "lock_algorithm": "sha256",
-  "runtime_closure_digest": "2a089110d083bf8b770bb53fe7870e3e26f6333ce524fa526b7b7a5aadcac8a5",
+  "runtime_closure_digest": "c32d4000bd67b4e7c7b5309d7abaa1f8fc7fdbf293c08ec8caf8d0e0595b2e8b",
   "artifacts": [
     {
       "name": "model.weight",
@@ -12,8 +12,8 @@
       "digest": "2139b2d42198a8db85a85868415216ff059b10a356afe7d848eea687fcdc73b8",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+        "revision": "9d90cf8fca1bf7b7acca42d3fc9ae694a2194069"
       }
     },
     {
@@ -22,8 +22,8 @@
       "digest": "bf210197c3b4d5c6a5e0fd9a2fbef930510f944fcf4fd87ca43d0e7216353fbc",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+        "revision": "9d90cf8fca1bf7b7acca42d3fc9ae694a2194069"
       }
     },
     {
@@ -32,8 +32,8 @@
       "digest": "9a4bb2b59c5d7ada821eaa9ba6508ea12114da916e24553ca99b3feeed558987",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+        "revision": "9d90cf8fca1bf7b7acca42d3fc9ae694a2194069"
       }
     },
     {
@@ -42,8 +42,8 @@
       "digest": "5befe087839f9f441d17649f586e9145d0fe09a0191914cd5e6723c230d8bb64",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+        "revision": "9d90cf8fca1bf7b7acca42d3fc9ae694a2194069"
       }
     },
     {
@@ -52,8 +52,8 @@
       "digest": "ea843e0cf8edcea6be2068f6070d6b5fe4afe7492f40981208ace5be14d614fc",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+        "revision": "9d90cf8fca1bf7b7acca42d3fc9ae694a2194069"
       }
     },
     {
@@ -62,8 +62,8 @@
       "digest": "dc9219f035ce96ddd85f3a2e303d9d367151b6eeec29beccbdfc0badbfa244ff",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+        "revision": "9d90cf8fca1bf7b7acca42d3fc9ae694a2194069"
       }
     },
     {
@@ -72,8 +72,8 @@
       "digest": "a2d89274a6943f29aad78e4573669eaaa2894f823621ef6a527f700844994085",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+        "revision": "9d90cf8fca1bf7b7acca42d3fc9ae694a2194069"
       }
     },
     {
@@ -146,5 +146,5 @@
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "9fa81fff52ebbea589deb48b6d74ec2de9d2035c9aa473f2a4bf455ec54bdbe2"
+  "lock_id": "c38ae80d850297fbb9fd05f6913e9f1b34a494eea3b94280a98ba4950e4d0399"
 }

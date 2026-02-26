@@ -1,106 +1,106 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "8943363ba466ef03c5560ef37b5fc4991f770c3b9f1ae7aaced59636da1a680a",
-  "generated_at": "2026-02-26T07:42:58Z",
+  "manifest_id": "8e1e9a8d001842bda9588c6c52d83517f5c821c8a451a8fcb9f7f0edbbc02f32",
+  "generated_at": "2026-02-26T11:47:27Z",
   "lock_algorithm": "sha256",
-  "runtime_closure_digest": "062580928969e05c0c8b71046d5da565416596ea2a11b57cd760d8e30612d610",
+  "runtime_closure_digest": "9aadb6e3e09dbbe421564261c3877d8d0c5a7747a05aba394c3d5e079be54a3a",
   "artifacts": [
     {
       "name": "model.weight",
       "path": "model.safetensors",
-      "digest": "346ba98dcfddc76781fa3f8ddcb78b18a740d20d56fd87f81f0cdffed1726d14",
+      "digest": "ec87174d82d9cdb7759e03f9c71947ca5465572d05eb119fea108dce80fff032",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "mistralai/Mistral-Large-3-675B-Instruct-2512",
+        "revision": "29842ca3976035f93553f34c885a9eb2a31a6d29"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer.json",
-      "digest": "b9c40d8cb851a6c9bea35a55bd32e0702be1641a6abe79e8b512f3826ba245af",
+      "digest": "f282a5563d064ca186b6d7f6834754286a4d2b2f93e57985315dcf1c79130cbf",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "mistralai/Mistral-Large-3-675B-Instruct-2512",
+        "revision": "29842ca3976035f93553f34c885a9eb2a31a6d29"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer_config.json",
-      "digest": "fc656e9540b4e566daaf37cf98182843611f01f011f5b5d3bc0b5f4559dda235",
+      "digest": "5ba24c6f992ab1aeee3a3111f69fff5d2b9292d035a920c299e39d633862f528",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "mistralai/Mistral-Large-3-675B-Instruct-2512",
+        "revision": "29842ca3976035f93553f34c885a9eb2a31a6d29"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "special_tokens_map.json",
-      "digest": "2a587aec4bcbd60b238be17a3d2e4b70633d14355621151c659cc9f43b9d8aee",
+      "digest": "5ff28fb986c67ed00e0517eb6ab8d6317f18686f5c954a69fa4f8562f0a85c02",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "mistralai/Mistral-Large-3-675B-Instruct-2512",
+        "revision": "29842ca3976035f93553f34c885a9eb2a31a6d29"
       }
     },
     {
       "name": "model.config",
       "path": "config.json",
-      "digest": "f686ae408d197f1f3541b81a2feaab807403b7e8f2f3246b13c3bfe9210322b0",
+      "digest": "59099e4bee904e6d48b929bb6b2b00ff14b877eb29d7cee83be6722defce6ab3",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "mistralai/Mistral-Large-3-675B-Instruct-2512",
+        "revision": "29842ca3976035f93553f34c885a9eb2a31a6d29"
       }
     },
     {
       "name": "model.config",
       "path": "generation_config.json",
-      "digest": "235fdbdc594d4480f37a312fc351c8a0c16f17c77acaba4f68175297539bd82f",
+      "digest": "8c0d10d4b1edaa8ca2fb3dc395f047dd0b42205eb9e4c675607c22dc8b91abbe",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "mistralai/Mistral-Large-3-675B-Instruct-2512",
+        "revision": "29842ca3976035f93553f34c885a9eb2a31a6d29"
       }
     },
     {
       "name": "model.chat_template",
       "path": "chat_template.jinja",
-      "digest": "a3ccb7a54433ab4a8d6f607dee63366f553fe13fb2dc7b63473cd7cb811a5080",
+      "digest": "1b12e1671d0f115d4e2ba12876329170181d6f4372ec9fef0717a37d7ed2f450",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "mistralai/Mistral-Large-3-675B-Instruct-2512",
+        "revision": "29842ca3976035f93553f34c885a9eb2a31a6d29"
       }
     },
     {
       "name": "python.package.vllm",
       "path": "",
-      "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b",
+      "digest": "eb95e74b6cef26d36d56c7ed3248899f6c516aa146381cb9fd539f2c2ce8c30f",
       "retrieval": {
         "type": "wheel",
-        "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
+        "digest": "eb95e74b6cef26d36d56c7ed3248899f6c516aa146381cb9fd539f2c2ce8c30f"
       }
     },
     {
       "name": "python.package.torch",
       "path": "",
-      "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937",
+      "digest": "86ef37aea48f78329aa9f400b781a92a981b5b9d3caa5d7d13a2666001c68bbd",
       "retrieval": {
         "type": "wheel",
-        "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
+        "digest": "86ef37aea48f78329aa9f400b781a92a981b5b9d3caa5d7d13a2666001c68bbd"
       }
     },
     {
       "name": "python.package.triton",
       "path": "",
-      "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3",
+      "digest": "65de412003c4e2f91138d015fab9305dbdfce3d5f66feb536cf8abe2f92e75b6",
       "retrieval": {
         "type": "wheel",
-        "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
+        "digest": "65de412003c4e2f91138d015fab9305dbdfce3d5f66feb536cf8abe2f92e75b6"
       }
     },
     {
@@ -146,5 +146,5 @@
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "224e247f4ebb03edc8c4f35c157f802ed6a2a76c1b11511288ce0ffcc97d3115"
+  "lock_id": "1e87927d61e18169fe37e33cd946269a69d658625ea3bcb6b2e9c0981d4b3f04"
 }

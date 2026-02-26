@@ -11,7 +11,6 @@ set -- \
   --max-model-len "${VLLM_MAX_MODEL_LEN:-32768}" \
   --max-num-seqs "${VLLM_MAX_NUM_SEQS:-1}" \
   --max-num-batched-tokens "${VLLM_MAX_NUM_BATCHED_TOKENS:-8192}" \
-  --attention-backend "${VLLM_ATTENTION_BACKEND:-FLASH_ATTN}" \
   --host "${VLLM_HOST:-0.0.0.0}" \
   --port "${VLLM_CONTAINER_PORT:-8000}"
 
@@ -25,6 +24,10 @@ fi
 
 if [ -n "${VLLM_GPU_MEMORY_UTILIZATION:-}" ]; then
   set -- "$@" --gpu-memory-utilization "${VLLM_GPU_MEMORY_UTILIZATION}"
+fi
+
+if [ -n "${VLLM_ATTENTION_BACKEND:-}" ]; then
+  set -- "$@" --attention-backend "${VLLM_ATTENTION_BACKEND}"
 fi
 
 if [ -n "${VLLM_CPU_OFFLOAD_GB:-}" ]; then
@@ -41,6 +44,18 @@ fi
 
 if [ -n "${VLLM_QUANTIZATION:-}" ]; then
   set -- "$@" --quantization "${VLLM_QUANTIZATION}"
+fi
+
+if [ -n "${VLLM_TOKENIZER_MODE:-}" ]; then
+  set -- "$@" --tokenizer-mode "${VLLM_TOKENIZER_MODE}"
+fi
+
+if [ -n "${VLLM_CONFIG_FORMAT:-}" ]; then
+  set -- "$@" --config-format "${VLLM_CONFIG_FORMAT}"
+fi
+
+if [ -n "${VLLM_LOAD_FORMAT:-}" ]; then
+  set -- "$@" --load-format "${VLLM_LOAD_FORMAT}"
 fi
 
 exec vllm serve "$@"

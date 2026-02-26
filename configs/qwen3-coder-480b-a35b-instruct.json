@@ -99,7 +99,7 @@
     "env": {
       "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
       "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
-      "CUDA_VISIBLE_DEVICES": "0,1,2,3"
+      "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7"
     },
     "driver_policy": "pinned_or_recorded"
   },
@@ -142,10 +142,10 @@
       "VLLM_CPU_OFFLOAD_GB": "64"
     },
     "engine_args": {
-      "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+      "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
       "trust_remote_code": false,
       "dtype": "bfloat16",
-      "tensor_parallel_size": 4,
+      "tensor_parallel_size": 8,
       "pipeline_parallel_size": 1,
       "max_model_len": 8192,
       "gpu_memory_utilization": 0.75,
@@ -158,8 +158,8 @@
     "weights": {
       "source": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+        "revision": "9d90cf8fca1bf7b7acca42d3fc9ae694a2194069"
       },
       "files": [
         {
