@@ -142,7 +142,8 @@
       "dtype": "bfloat16",
       "tensor_parallel_size": 1,
       "pipeline_parallel_size": 1,
-      "max_model_len": 32768
+      "max_model_len": 131072,
+      "async_scheduling": true
     }
   },
   "model": {

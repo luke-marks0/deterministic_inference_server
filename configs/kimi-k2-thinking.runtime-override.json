@@ -2,9 +2,9 @@
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_manifest",
   "metadata": {
-    "name": "deepseek-r1-distill-qwen-32b-a100",
-    "description": "Spec-aligned deterministic manifest for DeepSeek-R1-Distill-Qwen-32B on A100-class GPUs.",
-    "created_at": "2026-02-18T00:00:00Z",
+    "name": "kimi-k2-thinking",
+    "description": "Spec-aligned deterministic manifest for Kimi-K2-Thinking.",
+    "created_at": "2026-02-17T00:00:00Z",
     "owners": [
       "ml-platform@example.com"
     ]
@@ -46,7 +46,7 @@
       "type": "cas",
       "path": "state/store"
     },
-    "lockfile": "manifests/deepseek-r1-distill-qwen-32b-a100/manifest.lock.json"
+    "lockfile": "manifests/kimi-k2-thinking/manifest.lock.json"
   },
   "software_stack": {
     "python": {
@@ -120,7 +120,7 @@
     "network_policy": "online_allowed",
     "execution": {
       "backend": "openai_compatible",
-      "base_url": "http://127.0.0.1:8005",
+      "base_url": "http://127.0.0.1:8001",
       "timeout_seconds": 1200,
       "deterministic_failure_policy": "warn_only",
       "vllm_image": "docker.io/vllm/vllm-openai@sha256:8c9aaddfa6011b9651d06834d2fb90bdb9ab6ced4b420ec76925024eb12b22d0"
@@ -135,56 +135,34 @@
     "env": {
       "VLLM_BATCH_INVARIANT": "1",
       "VLLM_ENABLE_V1_MULTIPROCESSING": "0",
-      "VLLM_ATTENTION_BACKEND": "FLASH_ATTN"
+      "VLLM_ATTENTION_BACKEND": "TRITON_MLA"
     },
     "engine_args": {
-      "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-      "trust_remote_code": false,
+      "model": "moonshotai/Kimi-K2-Thinking",
+      "trust_remote_code": true,
       "dtype": "bfloat16",
       "tensor_parallel_size": 8,
       "pipeline_parallel_size": 1,
-      "max_model_len": 32768
+      "max_model_len": 2048,
+      "enable_auto_tool_choice": true,
+      "tool_call_parser": "kimi_k2",
+      "reasoning_parser": "kimi_k2",
+      "gpu_memory_utilization": 0.975
     }
   },
   "model": {
     "weights": {
       "source": {
         "type": "huggingface",
-        "repo": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-        "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746"
+        "repo": "moonshotai/Kimi-K2-Thinking",
+        "revision": "5b64d2a87e32f24d6231ef01ee676f65e54496a7",
+        "remote_code_commit": "5b64d2a87e32f24d6231ef01ee676f65e54496a7",
+        "remote_code_digest": "809923a8bb6f86f4818e40f3e376f53b0e351a26178fa7659effb6c17a060e6e"
       },
       "files": [
         {
-          "path": "model-00001-of-000008.safetensors",
-          "digest": "52addd84f7e83b6f5b54edfbcd11a9dc71ced13e63967e0e551fcdd071a09cac"
-        },
-        {
-          "path": "model-00002-of-000008.safetensors",
-          "digest": "7401ea9ee01963efcae3bc43c34b17546236e30abfb356541e56df7ab2872d9a"
-        },
-        {
-          "path": "model-00003-of-000008.safetensors",
-          "digest": "38b7e1968565c4334bae24082c262a337838d6520b590d4d0c3806df060d7a26"
-        },
-        {
-          "path": "model-00004-of-000008.safetensors",
-          "digest": "88f4a70419dc6c41779a88416baa0f4bad155e30c23dd8e90502bd98a32c9a49"
-        },
-        {
-          "path": "model-00005-of-000008.safetensors",
-          "digest": "45aee647ad5c930eb73896d507f0694b14218616cbe14b3f499eaab0eb5f1558"
-        },
-        {
-          "path": "model-00006-of-000008.safetensors",
-          "digest": "bc3c1a143d5b7144a6cf58a1de95981562fe27354edb7bda87433b8da869740e"
-        },
-        {
-          "path": "model-00007-of-000008.safetensors",
-          "digest": "bb06d0ea82ab4a42820683158375e979a72bf3e88ebf0eb52080f4dabd9e54b6"
-        },
-        {
-          "path": "model-00008-of-000008.safetensors",
-          "digest": "1a6b6f41ddd7d1c07d4fdb9a626f66cb9a0fb3138c7d1116fc528255c6bb2b2b"
+          "path": "model.safetensors",
+          "digest": "ac9ff0e47dcd2a6497ba7a9b1030fd1e8243571a8d46a95899ab5d443aa10e69"
         }
       ]
     },
@@ -192,11 +170,15 @@
       "files": [
         {
           "path": "tokenizer.json",
-          "digest": "88145e3c3249adc2546ede277e9819d6e405e19072456e4b521cbc724bd60773"
+          "digest": "121aaca811a0da498a0faa77cdfa041608adfdd4a9a7eb7051f6f23ad8f4fe9e"
         },
         {
           "path": "tokenizer_config.json",
-          "digest": "8ac8c85fb242563c2260baec0909debd69d718af6a0b3d90e6cab62b4d341cd5"
+          "digest": "52503637c711d79f2a3889eb8f53d1ed3deb34340e82fe34a998f2c371739229"
+        },
+        {
+          "path": "special_tokens_map.json",
+          "digest": "083354ff167135b33018d5d388a261b40c41cfc22f4801377d420e3d1f5b9240"
         }
       ]
     },
@@ -204,18 +186,18 @@
       "files": [
         {
           "path": "config.json",
-          "digest": "2c003fe40b13d2d1f372254d77177ed753176150f3d424d1b5ad22ff1d78a987"
+          "digest": "72eb0219131cdbb2c9ec5ef996c008a6ede336efe84a63816a924ab46d1f86bb"
         },
         {
           "path": "generation_config.json",
-          "digest": "72cbec1015da9ed03ad025483005cbf6481403abf947adfd54e504d1a66a2126"
+          "digest": "9bd466d312ac38ea5b94500c785d5ec5af98d35cf5cb083a58a6fd51a7fa5991"
         }
       ]
     },
     "chat_template": {
       "file": {
-        "path": "tokenizer_config.json",
-        "digest": "8ac8c85fb242563c2260baec0909debd69d718af6a0b3d90e6cab62b4d341cd5"
+        "path": "chat_template.jinja",
+        "digest": "d9f252c36622b101414fb44cdf49cf53781989a06618e93b73ef3ddade182b73"
       }
     }
   },
@@ -239,7 +221,7 @@
       "policy": "fixed",
       "schedule": "batch_invariant",
       "max_num_seqs": 1,
-      "max_num_batched_tokens": 4096,
+      "max_num_batched_tokens": 512,
       "fixed_request_order": true,
       "concurrency": 1
     }
@@ -263,7 +245,7 @@
     }
   },
   "outputs": {
-    "directory": "runs/deepseek-r1-distill-qwen-32b-a100/${run_id}",
+    "directory": "runs/kimi-k2-thinking/${run_id}",
     "golden": {
       "enabled": false
     },

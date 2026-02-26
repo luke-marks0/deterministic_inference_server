@@ -134,8 +134,7 @@
     },
     "env": {
       "VLLM_BATCH_INVARIANT": "0",
-      "VLLM_ENABLE_V1_MULTIPROCESSING": "0",
-      "VLLM_ATTENTION_BACKEND": "FLASHMLA_SPARSE"
+      "VLLM_ENABLE_V1_MULTIPROCESSING": "0"
     },
     "engine_args": {
       "model": "deepseek-ai/DeepSeek-V3.2",
@@ -143,7 +142,8 @@
       "dtype": "bfloat16",
       "tensor_parallel_size": 8,
       "pipeline_parallel_size": 1,
-      "max_model_len": 32768,
+      "max_model_len": 163840,
+      "tokenizer_mode": "deepseek_v32",
       "enable_auto_tool_choice": true,
       "tool_call_parser": "deepseek_v32",
       "reasoning_parser": "deepseek_v3"

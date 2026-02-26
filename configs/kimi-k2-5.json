@@ -16,10 +16,15 @@
   "vllm": {
     "engine_args": {
       "model": "moonshotai/Kimi-K2.5",
+      "trust_remote_code": true,
       "dtype": "float16",
       "tensor_parallel_size": 8,
       "pipeline_parallel_size": 1,
-      "max_model_len": 32768
+      "max_model_len": 32768,
+      "mm_encoder_tp_mode": "data",
+      "enable_auto_tool_choice": true,
+      "tool_call_parser": "kimi_k2",
+      "reasoning_parser": "kimi_k2"
     }
   },
   "model": {

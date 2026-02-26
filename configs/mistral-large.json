@@ -19,7 +19,12 @@
       "dtype": "float16",
       "tensor_parallel_size": 8,
       "pipeline_parallel_size": 1,
-      "max_model_len": 32768
+      "max_model_len": 131072,
+      "tokenizer_mode": "mistral",
+      "config_format": "mistral",
+      "load_format": "mistral",
+      "enable_auto_tool_choice": true,
+      "tool_call_parser": "mistral"
     }
   },
   "model": {
