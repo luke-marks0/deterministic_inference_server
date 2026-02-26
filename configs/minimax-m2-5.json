@@ -1,27 +1,152 @@
 {
-  "x_base_manifest": "standard-base.json",
+  "schema_version": 1,
+  "kind": "vllm.deterministic_inference_manifest",
   "metadata": {
     "name": "minimax-m2-5",
     "description": "Spec-aligned deterministic manifest for MiniMax-M2.5.",
-    "created_at": "2026-02-20T13:13:18Z"
+    "created_at": "2026-02-20T13:13:18Z",
+    "owners": [
+      "ml-platform@example.com"
+    ]
+  },
+  "determinism": {
+    "strict_hardware": false,
+    "compare": {
+      "tokens": {
+        "rule": "exact"
+      },
+      "logits": {
+        "rule": "exact"
+      },
+      "activations": {
+        "rule": "absrel",
+        "atol": 0.0,
+        "rtol": 0.0
+      },
+      "engine_trace": {
+        "rule": "exact"
+      }
+    }
+  },
+  "hardware": {
+    "constraints": {
+      "accelerator_vendor": "nvidia",
+      "gpu_arch_min_cc": "8.0",
+      "allowed_gpu_models": []
+    },
+    "record": {
+      "capture_collect_env": true,
+      "capture_nvidia_smi": true,
+      "capture_driver_versions": true,
+      "capture_pcie_topology": false
+    }
   },
   "artifacts": {
+    "store": {
+      "type": "cas",
+      "path": "state/store"
+    },
     "lockfile": "manifests/minimax-m2-5/manifest.lock.json"
   },
+  "software_stack": {
+    "python": {
+      "version": "3.11.8",
+      "packages": [
+        {
+          "name": "vllm",
+          "source": {
+            "type": "wheel",
+            "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
+          }
+        },
+        {
+          "name": "torch",
+          "source": {
+            "type": "wheel",
+            "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
+          }
+        },
+        {
+          "name": "triton",
+          "source": {
+            "type": "wheel",
+            "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
+          }
+        }
+      ]
+    },
+    "compiled_extensions": []
+  },
+  "cuda_stack": {
+    "userspace": {
+      "cuda_toolkit": {
+        "version": "12.x",
+        "digest": "621e155eb77a75e6f2c4d4cf65177ffd2aa9a2625712443bc35657dc48bc141e"
+      },
+      "cublas": {
+        "version": "12.x",
+        "digest": "7b42da2c381b1945ab964ab47d5e3eb55c68e5bfe9713adc2a34ff8ad58f3827"
+      },
+      "cudnn": {
+        "version": "9.x",
+        "digest": "1218bedb143a5ce463ea551e7530e9c3dd803364b130439b4c182e1aaa5dfa4d"
+      },
+      "nccl": {
+        "version": "2.x",
+        "digest": "c12e64d2c825bbe6b87b17a77c8ecd78e9bdc7126a38867a878e690478ca56e0"
+      }
+    },
+    "env": {
+      "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+      "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+      "CUDA_VISIBLE_DEVICES": "0,1,2,3"
+    },
+    "driver_policy": "pinned_or_recorded"
+  },
   "runtime": {
+    "env": {
+      "PYTHONHASHSEED": "0",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1"
+    },
+    "locale": {
+      "lang": "C.UTF-8",
+      "tz": "UTC"
+    },
+    "threads": {
+      "omp_num_threads": 1,
+      "mkl_num_threads": 1
+    },
+    "network_policy": "online_allowed",
     "execution": {
-      "base_url": "http://127.0.0.1:8008"
+      "backend": "openai_compatible",
+      "base_url": "http://127.0.0.1:8008",
+      "timeout_seconds": 1200,
+      "deterministic_failure_policy": "warn_only",
+      "vllm_image": "docker.io/vllm/vllm-openai@sha256:8c9aaddfa6011b9651d06834d2fb90bdb9ab6ced4b420ec76925024eb12b22d0"
     }
   },
   "vllm": {
+    "mode": "server",
+    "reproducibility": {
+      "enable_batch_invariance": true,
+      "enable_v1_multiprocessing": false
+    },
+    "env": {
+      "VLLM_BATCH_INVARIANT": "1",
+      "VLLM_ENABLE_V1_MULTIPROCESSING": "0",
+      "VLLM_DEEP_GEMM_WARMUP": "skip",
+      "VLLM_USE_DEEP_GEMM": "0",
+      "VLLM_MOE_USE_DEEP_GEMM": "0",
+      "VLLM_USE_FLASHINFER_MOE_FP8": "0"
+    },
     "engine_args": {
       "model": "MiniMaxAI/MiniMax-M2.5",
       "trust_remote_code": true,
-      "dtype": "float16",
-      "tensor_parallel_size": 8,
+      "dtype": "bfloat16",
+      "tensor_parallel_size": 4,
       "pipeline_parallel_size": 1,
-      "max_model_len": 196608,
-      "enable_expert_parallel": true,
+      "max_model_len": 32768,
       "enable_auto_tool_choice": true,
       "tool_call_parser": "minimax_m2",
       "reasoning_parser": "minimax_m2_append_think"
@@ -30,12 +155,110 @@
   "model": {
     "weights": {
       "source": {
+        "type": "huggingface",
         "repo": "MiniMaxAI/MiniMax-M2.5",
-        "revision": "1248334bbc56717c3d47a6bc66de110059b6580f"
+        "revision": "1248334bbc56717c3d47a6bc66de110059b6580f",
+        "remote_code_commit": "1248334bbc56717c3d47a6bc66de110059b6580f",
+        "remote_code_digest": "33dbba8413b098ed2ab3af834b593c75c93aebc6c11241a22fb066676ffca9e5"
+      },
+      "files": [
+        {
+          "path": "model.safetensors",
+          "digest": "6494cf00b76eaad17ce4bec4e21c77360c689385649790730468cc12fbbf7d2c"
+        }
+      ]
+    },
+    "tokenizer": {
+      "files": [
+        {
+          "path": "tokenizer.json",
+          "digest": "76e135b7fe119eec56c3484a3aadc0e2b8ffadeb06c9d8ff642eb3e667e2fd14"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "digest": "6fa2518724b3ee39f4d505bbf6f6b5c1e2f4b89b81b2476186ba2b54c42e3090"
+        },
+        {
+          "path": "special_tokens_map.json",
+          "digest": "f47c227539a877e9782525027d511fcd50f4f5552f2a73a222db4324217a61c9"
+        }
+      ]
+    },
+    "config": {
+      "files": [
+        {
+          "path": "config.json",
+          "digest": "a365e567456af1633a9bc21faf8589efbcc2ced899e0350849804568431a9ea5"
+        },
+        {
+          "path": "generation_config.json",
+          "digest": "62032a32de44e01eeaea39bafe3e8acb831e55e780150cbb565c653a8f0413c3"
+        }
+      ]
+    },
+    "chat_template": {
+      "file": {
+        "path": "chat_template.jinja",
+        "digest": "344c1c589bd16a1c62b37149b53f47ac81b839417b98c40ec1e193114a7708f7"
       }
     }
   },
+  "inference": {
+    "n_prompts": 100,
+    "request_template": {
+      "kind": "completion",
+      "sampling": {
+        "temperature": 0.0,
+        "top_p": 0.95,
+        "top_k": 50,
+        "max_tokens": 32,
+        "seed": 424242
+      },
+      "stop": {
+        "sequences": [],
+        "token_ids": []
+      }
+    },
+    "batching": {
+      "policy": "fixed",
+      "schedule": "batch_invariant",
+      "max_num_seqs": 1,
+      "max_num_batched_tokens": 4096,
+      "fixed_request_order": true,
+      "concurrency": 1
+    }
+  },
+  "capture": {
+    "tokens": true,
+    "logits": {
+      "enabled": false,
+      "scope": "chosen_only",
+      "dtype": "float16",
+      "capture_prefill": false,
+      "capture_decode": false
+    },
+    "activations": {
+      "enabled": false,
+      "hooks": []
+    },
+    "engine_trace": {
+      "enabled": false,
+      "events": []
+    }
+  },
   "outputs": {
-    "directory": "runs/minimax-m2-5/${run_id}"
+    "directory": "runs/minimax-m2-5/${run_id}",
+    "golden": {
+      "enabled": false
+    },
+    "bundle_policy": {
+      "include": [
+        "manifest",
+        "lock",
+        "tokens",
+        "run_log"
+      ],
+      "retention_days": 30
+    }
   }
 }

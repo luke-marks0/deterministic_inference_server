@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "9c0e6e6fc3ccccdf28906107db87f32cb489abe368df6ece0b0b931a45ca6a2b",
-  "generated_at": "2026-02-25T15:54:39Z",
+  "manifest_id": "776ce39e06877d6aece09f666d2baa9e93269eda3b7b0e3bbe605ac74701af72",
+  "generated_at": "2026-02-26T05:27:11Z",
   "lock_algorithm": "sha256",
-  "runtime_closure_digest": "e1edce10a966670d00fd3aa46a147e629cab125d46e52dd9e944369b43b0f905",
+  "runtime_closure_digest": "60865759e76b457db813308323dfd7ffcb88e8d39ac30a6b7f95cf8fccfa9fce",
   "artifacts": [
     {
       "name": "model.weight",
@@ -12,8 +12,8 @@
       "digest": "7e33fbf711cd2f0d4855a75b09804060cc960901f121fadf1300bcb4f04ee25e",
       "retrieval": {
         "type": "huggingface",
-        "repo": "deepseek-ai/DeepSeek-V3.2",
-        "revision": "a7e62ac04ecb2c0a54d736dc46601c5606cf10a6"
+        "repo": "Qwen/Qwen3-8B",
+        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
       }
     },
     {
@@ -22,8 +22,8 @@
       "digest": "c70f481a8a8a6ef85ff7ff73e3a82138108e7d0e12c1ccf858ede448e6a16064",
       "retrieval": {
         "type": "huggingface",
-        "repo": "deepseek-ai/DeepSeek-V3.2",
-        "revision": "a7e62ac04ecb2c0a54d736dc46601c5606cf10a6"
+        "repo": "Qwen/Qwen3-8B",
+        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
       }
     },
     {
@@ -32,8 +32,8 @@
       "digest": "5b55d51f31438a1ade81a174f50c333563fdd9f076383408f3e7483650033a61",
       "retrieval": {
         "type": "huggingface",
-        "repo": "deepseek-ai/DeepSeek-V3.2",
-        "revision": "a7e62ac04ecb2c0a54d736dc46601c5606cf10a6"
+        "repo": "Qwen/Qwen3-8B",
+        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
       }
     },
     {
@@ -42,8 +42,8 @@
       "digest": "b7298ac3ddabf90e982f5c096ba543ec432ae6e659bc77c5cf4df3ee66678656",
       "retrieval": {
         "type": "huggingface",
-        "repo": "deepseek-ai/DeepSeek-V3.2",
-        "revision": "a7e62ac04ecb2c0a54d736dc46601c5606cf10a6"
+        "repo": "Qwen/Qwen3-8B",
+        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
       }
     },
     {
@@ -52,8 +52,8 @@
       "digest": "f2aaa7c6cbdf0b15fc2673ca2d69c2bd18101761503efab6e6db39eaf2f58442",
       "retrieval": {
         "type": "huggingface",
-        "repo": "deepseek-ai/DeepSeek-V3.2",
-        "revision": "a7e62ac04ecb2c0a54d736dc46601c5606cf10a6"
+        "repo": "Qwen/Qwen3-8B",
+        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
       }
     },
     {
@@ -62,8 +62,8 @@
       "digest": "5ce506fc6aab2718a5a6d9dcb84c10f6cf01f8589c2604ecc532fea4a85fab1f",
       "retrieval": {
         "type": "huggingface",
-        "repo": "deepseek-ai/DeepSeek-V3.2",
-        "revision": "a7e62ac04ecb2c0a54d736dc46601c5606cf10a6"
+        "repo": "Qwen/Qwen3-8B",
+        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
       }
     },
     {
@@ -72,8 +72,8 @@
       "digest": "a995f51b70f68001f4792c4c26a74db39e82c2a61ebaa506c57c2c8aed303969",
       "retrieval": {
         "type": "huggingface",
-        "repo": "deepseek-ai/DeepSeek-V3.2",
-        "revision": "a7e62ac04ecb2c0a54d736dc46601c5606cf10a6"
+        "repo": "Qwen/Qwen3-8B",
+        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
       }
     },
     {
@@ -146,5 +146,5 @@
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "3bb62b5cea6d700d162bbef0d6a7daca416928eb98f4aab559f60d603ce965ea"
+  "lock_id": "197bd5acc1050b14a2e73e09ac3cd147cb100a9af4767f62eb413b64cda55a91"
 }

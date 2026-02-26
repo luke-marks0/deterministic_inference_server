@@ -27,6 +27,10 @@ if [ -n "${VLLM_GPU_MEMORY_UTILIZATION:-}" ]; then
   set -- "$@" --gpu-memory-utilization "${VLLM_GPU_MEMORY_UTILIZATION}"
 fi
 
+if [ -n "${VLLM_CPU_OFFLOAD_GB:-}" ]; then
+  set -- "$@" --cpu-offload-gb "${VLLM_CPU_OFFLOAD_GB}"
+fi
+
 if [ -n "${VLLM_TOOL_CALL_PARSER:-}" ]; then
   set -- "$@" --tool-call-parser "${VLLM_TOOL_CALL_PARSER}"
 fi

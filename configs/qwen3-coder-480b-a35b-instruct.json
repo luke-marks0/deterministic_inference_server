@@ -2,9 +2,9 @@
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_manifest",
   "metadata": {
-    "name": "deepseek-v3-2",
-    "description": "Spec-aligned deterministic manifest for DeepSeek-V3.2.",
-    "created_at": "2026-02-18T00:00:00Z",
+    "name": "qwen3-coder-480b-a35b-instruct",
+    "description": "Spec-aligned deterministic manifest for Qwen3-Coder-480B-A35B-Instruct.",
+    "created_at": "2026-02-26T00:00:00Z",
     "owners": [
       "ml-platform@example.com"
     ]
@@ -46,7 +46,7 @@
       "type": "cas",
       "path": "state/store"
     },
-    "lockfile": "manifests/deepseek-v3-2/manifest.lock.json"
+    "lockfile": "manifests/qwen3-coder-480b-a35b-instruct/manifest.lock.json"
   },
   "software_stack": {
     "python": {
@@ -56,21 +56,21 @@
           "name": "vllm",
           "source": {
             "type": "wheel",
-            "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
+            "digest": "3e8972af86dd5f021c268743607fb071a4b32d1a4fcdb19432c9d48224ca35c8"
           }
         },
         {
           "name": "torch",
           "source": {
             "type": "wheel",
-            "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
+            "digest": "7400ff20d2cf9622499c4a1943e0edf9abd3228b291be3ce2b7d19d111c0eb65"
           }
         },
         {
           "name": "triton",
           "source": {
             "type": "wheel",
-            "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
+            "digest": "2eccb4c8b6a5f240c3d393782605e89722c9a1c21d4b9ea81d6c3241faa498e6"
           }
         }
       ]
@@ -99,7 +99,7 @@
     "env": {
       "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
       "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
-      "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7"
+      "CUDA_VISIBLE_DEVICES": "0,1,2,3"
     },
     "driver_policy": "pinned_or_recorded"
   },
@@ -107,8 +107,7 @@
     "env": {
       "PYTHONHASHSEED": "0",
       "OMP_NUM_THREADS": "1",
-      "MKL_NUM_THREADS": "1",
-      "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
+      "MKL_NUM_THREADS": "1"
     },
     "locale": {
       "lang": "C.UTF-8",
@@ -121,8 +120,8 @@
     "network_policy": "online_allowed",
     "execution": {
       "backend": "openai_compatible",
-      "base_url": "http://127.0.0.1:8004",
-      "timeout_seconds": 600,
+      "base_url": "http://127.0.0.1:8010",
+      "timeout_seconds": 1200,
       "deterministic_failure_policy": "warn_only",
       "vllm_image": "docker.io/vllm/vllm-openai@sha256:8c9aaddfa6011b9651d06834d2fb90bdb9ab6ced4b420ec76925024eb12b22d0"
     }
@@ -136,15 +135,20 @@
     "env": {
       "VLLM_BATCH_INVARIANT": "1",
       "VLLM_ENABLE_V1_MULTIPROCESSING": "0",
-      "VLLM_ATTENTION_BACKEND": "FLASH_ATTN"
+      "VLLM_DEEP_GEMM_WARMUP": "skip",
+      "VLLM_USE_DEEP_GEMM": "0",
+      "VLLM_MOE_USE_DEEP_GEMM": "0",
+      "VLLM_USE_FLASHINFER_MOE_FP8": "0",
+      "VLLM_CPU_OFFLOAD_GB": "64"
     },
     "engine_args": {
-      "model": "Qwen/Qwen3-8B",
+      "model": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
       "trust_remote_code": false,
-      "dtype": "float16",
-      "tensor_parallel_size": 1,
+      "dtype": "bfloat16",
+      "tensor_parallel_size": 4,
       "pipeline_parallel_size": 1,
-      "max_model_len": 40960,
+      "max_model_len": 8192,
+      "gpu_memory_utilization": 0.75,
       "enable_auto_tool_choice": true,
       "tool_call_parser": "hermes",
       "reasoning_parser": "qwen3"
@@ -154,13 +158,13 @@
     "weights": {
       "source": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-8B",
-        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
       },
       "files": [
         {
           "path": "model.safetensors",
-          "digest": "7e33fbf711cd2f0d4855a75b09804060cc960901f121fadf1300bcb4f04ee25e"
+          "digest": "2139b2d42198a8db85a85868415216ff059b10a356afe7d848eea687fcdc73b8"
         }
       ]
     },
@@ -168,15 +172,15 @@
       "files": [
         {
           "path": "tokenizer.json",
-          "digest": "c70f481a8a8a6ef85ff7ff73e3a82138108e7d0e12c1ccf858ede448e6a16064"
+          "digest": "bf210197c3b4d5c6a5e0fd9a2fbef930510f944fcf4fd87ca43d0e7216353fbc"
         },
         {
           "path": "tokenizer_config.json",
-          "digest": "5b55d51f31438a1ade81a174f50c333563fdd9f076383408f3e7483650033a61"
+          "digest": "9a4bb2b59c5d7ada821eaa9ba6508ea12114da916e24553ca99b3feeed558987"
         },
         {
           "path": "special_tokens_map.json",
-          "digest": "b7298ac3ddabf90e982f5c096ba543ec432ae6e659bc77c5cf4df3ee66678656"
+          "digest": "5befe087839f9f441d17649f586e9145d0fe09a0191914cd5e6723c230d8bb64"
         }
       ]
     },
@@ -184,23 +188,23 @@
       "files": [
         {
           "path": "config.json",
-          "digest": "f2aaa7c6cbdf0b15fc2673ca2d69c2bd18101761503efab6e6db39eaf2f58442"
+          "digest": "ea843e0cf8edcea6be2068f6070d6b5fe4afe7492f40981208ace5be14d614fc"
         },
         {
           "path": "generation_config.json",
-          "digest": "5ce506fc6aab2718a5a6d9dcb84c10f6cf01f8589c2604ecc532fea4a85fab1f"
+          "digest": "dc9219f035ce96ddd85f3a2e303d9d367151b6eeec29beccbdfc0badbfa244ff"
         }
       ]
     },
     "chat_template": {
       "file": {
         "path": "chat_template.jinja",
-        "digest": "a995f51b70f68001f4792c4c26a74db39e82c2a61ebaa506c57c2c8aed303969"
+        "digest": "a2d89274a6943f29aad78e4573669eaaa2894f823621ef6a527f700844994085"
       }
     }
   },
   "inference": {
-    "n_prompts": 1,
+    "n_prompts": 100,
     "request_template": {
       "kind": "completion",
       "sampling": {
@@ -243,7 +247,7 @@
     }
   },
   "outputs": {
-    "directory": "runs/deepseek-v3-2/${run_id}",
+    "directory": "runs/qwen3-coder-480b-a35b-instruct/${run_id}",
     "golden": {
       "enabled": false
     },

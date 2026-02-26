@@ -1,112 +1,126 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "c2e67c4808193a6e3cd41139d2e273389f073f896c6c69357153a1c900fa2d4b",
-  "generated_at": "2026-02-21T12:58:34Z",
+  "manifest_id": "19d6d745f89d19958c1802105dc1c4152d3757b77d2939e22ae57f9f63de8018",
+  "generated_at": "2026-02-26T06:25:33Z",
   "lock_algorithm": "sha256",
-  "runtime_closure_digest": "7a5d36edd8bd68924cb079b229adf516ff08cb0404613f4b979895f8d342fcf4",
+  "runtime_closure_digest": "3f281c6567535efd4599c8dc80e09092f26606984efeee84884a4c256cdae444",
   "artifacts": [
     {
       "name": "model.weight",
       "path": "model.safetensors",
-      "digest": "sha256:unset",
+      "digest": "f5237ec9cf168ea0a49bf59f005ee5572dda64f8baf903197e01aa95187287fd",
       "retrieval": {
         "type": "huggingface",
         "repo": "MiniMaxAI/MiniMax-M2.1",
-        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c"
+        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_commit": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_digest": "5200fac92aade886686a1f0652cdf2a8745c58706358bddff6f9414e22550657"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer.json",
-      "digest": "sha256:unset",
+      "digest": "cb85dfba1eb3b75bf2e469d5391e212c3454db881f8e6f43601033bdca280a68",
       "retrieval": {
         "type": "huggingface",
         "repo": "MiniMaxAI/MiniMax-M2.1",
-        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c"
+        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_commit": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_digest": "5200fac92aade886686a1f0652cdf2a8745c58706358bddff6f9414e22550657"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer_config.json",
-      "digest": "sha256:unset",
+      "digest": "8a91339d664d39ace5e3985077b3368932371f84223086626d50aa34bdc24b2c",
       "retrieval": {
         "type": "huggingface",
         "repo": "MiniMaxAI/MiniMax-M2.1",
-        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c"
+        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_commit": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_digest": "5200fac92aade886686a1f0652cdf2a8745c58706358bddff6f9414e22550657"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "special_tokens_map.json",
-      "digest": "sha256:unset",
+      "digest": "7a5f956335fd6c4c93b06214be84a68982a800215a3cb0f566cbc83f35f5bb16",
       "retrieval": {
         "type": "huggingface",
         "repo": "MiniMaxAI/MiniMax-M2.1",
-        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c"
+        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_commit": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_digest": "5200fac92aade886686a1f0652cdf2a8745c58706358bddff6f9414e22550657"
       }
     },
     {
       "name": "model.config",
       "path": "config.json",
-      "digest": "sha256:unset",
+      "digest": "f1b16a03a920cbbe481eea4ac2b8eb6e7a64d3515337683ccd9fb4b492609d45",
       "retrieval": {
         "type": "huggingface",
         "repo": "MiniMaxAI/MiniMax-M2.1",
-        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c"
+        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_commit": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_digest": "5200fac92aade886686a1f0652cdf2a8745c58706358bddff6f9414e22550657"
       }
     },
     {
       "name": "model.config",
       "path": "generation_config.json",
-      "digest": "sha256:unset",
+      "digest": "dbf8ea86c8cb1b2fbe2cc5d1c72b9908e6f223cc256466d4437e057c0a688518",
       "retrieval": {
         "type": "huggingface",
         "repo": "MiniMaxAI/MiniMax-M2.1",
-        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c"
+        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_commit": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_digest": "5200fac92aade886686a1f0652cdf2a8745c58706358bddff6f9414e22550657"
       }
     },
     {
       "name": "model.chat_template",
       "path": "chat_template.jinja",
-      "digest": "sha256:unset",
+      "digest": "ae69444f6b1ed33d0f80c379425d8a7022c2e203e14b67cdb260476e1c059da1",
       "retrieval": {
         "type": "huggingface",
         "repo": "MiniMaxAI/MiniMax-M2.1",
-        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c"
+        "revision": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_commit": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+        "remote_code_digest": "5200fac92aade886686a1f0652cdf2a8745c58706358bddff6f9414e22550657"
       }
     },
     {
       "name": "python.package.vllm",
       "path": "",
-      "digest": "sha256:unset",
+      "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b",
       "retrieval": {
         "type": "wheel",
-        "digest": "sha256:unset"
+        "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
       }
     },
     {
       "name": "python.package.torch",
       "path": "",
-      "digest": "sha256:unset",
+      "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937",
       "retrieval": {
         "type": "wheel",
-        "digest": "sha256:unset"
+        "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
       }
     },
     {
       "name": "python.package.triton",
       "path": "",
-      "digest": "sha256:unset",
+      "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3",
       "retrieval": {
         "type": "wheel",
-        "digest": "sha256:unset"
+        "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
       }
     },
     {
       "name": "cuda.userspace.cuda_toolkit",
       "path": "cuda_toolkit",
-      "digest": "sha256:unset",
+      "digest": "621e155eb77a75e6f2c4d4cf65177ffd2aa9a2625712443bc35657dc48bc141e",
       "retrieval": {
         "version": "12.x"
       }
@@ -114,7 +128,7 @@
     {
       "name": "cuda.userspace.cublas",
       "path": "cublas",
-      "digest": "sha256:unset",
+      "digest": "7b42da2c381b1945ab964ab47d5e3eb55c68e5bfe9713adc2a34ff8ad58f3827",
       "retrieval": {
         "version": "12.x"
       }
@@ -122,7 +136,7 @@
     {
       "name": "cuda.userspace.cudnn",
       "path": "cudnn",
-      "digest": "sha256:unset",
+      "digest": "1218bedb143a5ce463ea551e7530e9c3dd803364b130439b4c182e1aaa5dfa4d",
       "retrieval": {
         "version": "9.x"
       }
@@ -130,12 +144,31 @@
     {
       "name": "cuda.userspace.nccl",
       "path": "nccl",
-      "digest": "sha256:unset",
+      "digest": "c12e64d2c825bbe6b87b17a77c8ecd78e9bdc7126a38867a878e690478ca56e0",
       "retrieval": {
         "version": "2.x"
+      }
+    },
+    {
+      "name": "inference.prompt_dataset",
+      "path": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json",
+      "digest": "20e27e9c4367c25954f7975669dd6dc1c43ebbd8148f6d08136a3833c793e082",
+      "retrieval": {
+        "type": "local_file",
+        "local_file": "/home/ubuntu/deterministic_inference_server/artifacts/reference_prompts/reference_prompts.json"
+      }
+    },
+    {
+      "name": "model.remote_code",
+      "path": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c",
+      "digest": "5200fac92aade886686a1f0652cdf2a8745c58706358bddff6f9414e22550657",
+      "retrieval": {
+        "type": "remote_code",
+        "repo": "MiniMaxAI/MiniMax-M2.1",
+        "commit": "cd97f59135f37b2a6bf09356e485d5e4aeb7dc9c"
       }
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "89fe5afee660d1411efa50fdf7afeaba7655bc0b2c851e2d1d152a6a2d4ca3df"
+  "lock_id": "ee47f5d3fe6f1e693bcdf35637a6ba4fc9f7975f3c5272396b4f63b281f7960d"
 }

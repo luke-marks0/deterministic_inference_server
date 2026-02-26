@@ -1,106 +1,106 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "8943363ba466ef03c5560ef37b5fc4991f770c3b9f1ae7aaced59636da1a680a",
-  "generated_at": "2026-02-26T07:42:58Z",
+  "manifest_id": "a942a34efb13d89b88f45a101557f78b5a2c0c8715069a6f58c3490c31b92c55",
+  "generated_at": "2026-02-26T08:39:37Z",
   "lock_algorithm": "sha256",
-  "runtime_closure_digest": "062580928969e05c0c8b71046d5da565416596ea2a11b57cd760d8e30612d610",
+  "runtime_closure_digest": "2a089110d083bf8b770bb53fe7870e3e26f6333ce524fa526b7b7a5aadcac8a5",
   "artifacts": [
     {
       "name": "model.weight",
       "path": "model.safetensors",
-      "digest": "346ba98dcfddc76781fa3f8ddcb78b18a740d20d56fd87f81f0cdffed1726d14",
+      "digest": "2139b2d42198a8db85a85868415216ff059b10a356afe7d848eea687fcdc73b8",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer.json",
-      "digest": "b9c40d8cb851a6c9bea35a55bd32e0702be1641a6abe79e8b512f3826ba245af",
+      "digest": "bf210197c3b4d5c6a5e0fd9a2fbef930510f944fcf4fd87ca43d0e7216353fbc",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer_config.json",
-      "digest": "fc656e9540b4e566daaf37cf98182843611f01f011f5b5d3bc0b5f4559dda235",
+      "digest": "9a4bb2b59c5d7ada821eaa9ba6508ea12114da916e24553ca99b3feeed558987",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "special_tokens_map.json",
-      "digest": "2a587aec4bcbd60b238be17a3d2e4b70633d14355621151c659cc9f43b9d8aee",
+      "digest": "5befe087839f9f441d17649f586e9145d0fe09a0191914cd5e6723c230d8bb64",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
       }
     },
     {
       "name": "model.config",
       "path": "config.json",
-      "digest": "f686ae408d197f1f3541b81a2feaab807403b7e8f2f3246b13c3bfe9210322b0",
+      "digest": "ea843e0cf8edcea6be2068f6070d6b5fe4afe7492f40981208ace5be14d614fc",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
       }
     },
     {
       "name": "model.config",
       "path": "generation_config.json",
-      "digest": "235fdbdc594d4480f37a312fc351c8a0c16f17c77acaba4f68175297539bd82f",
+      "digest": "dc9219f035ce96ddd85f3a2e303d9d367151b6eeec29beccbdfc0badbfa244ff",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
       }
     },
     {
       "name": "model.chat_template",
       "path": "chat_template.jinja",
-      "digest": "a3ccb7a54433ab4a8d6f607dee63366f553fe13fb2dc7b63473cd7cb811a5080",
+      "digest": "a2d89274a6943f29aad78e4573669eaaa2894f823621ef6a527f700844994085",
       "retrieval": {
         "type": "huggingface",
-        "repo": "mistralai/Mistral-Large-Instruct-2411",
-        "revision": "ba78820945ae22361b0274cf0ae6d696c967c1a4"
+        "repo": "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
+        "revision": "003f183a92fbe5b9a8325aaa8b2ae797c91dd90f"
       }
     },
     {
       "name": "python.package.vllm",
       "path": "",
-      "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b",
+      "digest": "3e8972af86dd5f021c268743607fb071a4b32d1a4fcdb19432c9d48224ca35c8",
       "retrieval": {
         "type": "wheel",
-        "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
+        "digest": "3e8972af86dd5f021c268743607fb071a4b32d1a4fcdb19432c9d48224ca35c8"
       }
     },
     {
       "name": "python.package.torch",
       "path": "",
-      "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937",
+      "digest": "7400ff20d2cf9622499c4a1943e0edf9abd3228b291be3ce2b7d19d111c0eb65",
       "retrieval": {
         "type": "wheel",
-        "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
+        "digest": "7400ff20d2cf9622499c4a1943e0edf9abd3228b291be3ce2b7d19d111c0eb65"
       }
     },
     {
       "name": "python.package.triton",
       "path": "",
-      "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3",
+      "digest": "2eccb4c8b6a5f240c3d393782605e89722c9a1c21d4b9ea81d6c3241faa498e6",
       "retrieval": {
         "type": "wheel",
-        "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
+        "digest": "2eccb4c8b6a5f240c3d393782605e89722c9a1c21d4b9ea81d6c3241faa498e6"
       }
     },
     {
@@ -146,5 +146,5 @@
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "224e247f4ebb03edc8c4f35c157f802ed6a2a76c1b11511288ce0ffcc97d3115"
+  "lock_id": "9fa81fff52ebbea589deb48b6d74ec2de9d2035c9aa473f2a4bf455ec54bdbe2"
 }
