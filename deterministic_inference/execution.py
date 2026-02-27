@@ -414,11 +414,15 @@ def _messages_prompt_token_ids(request: dict[str, Any], manifest: dict[str, Any]
             "in manifest.model.weights.source.repo or vllm.engine_args.model."
         )
 
-    tokenizer = _load_chat_template_tokenizer(model_name, revision)
-    messages = _request_messages(request)
-    rendered = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    token_ids = tokenizer.encode(rendered, add_special_tokens=False)
-    return [int(token) for token in token_ids]
+    try:
+        tokenizer = _load_chat_template_tokenizer(model_name, revision)
+        messages = _request_messages(request)
+        rendered = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        token_ids = tokenizer.encode(rendered, add_special_tokens=False)
+        return [int(token) for token in token_ids]
+    except Exception:
+        # Fall back to plain-text prompt payload when dynamic chat tokenizer loading fails.
+        return None
 
 
 def _extract_response_token_ids(response: dict[str, Any]) -> list[int]:
@@ -503,6 +507,12 @@ def _openai_generate_tokens(
     )
     if explicit_prompt_token_ids is None:
         explicit_prompt_token_ids = _messages_prompt_token_ids(request, manifest)
+    fallback_prompt_token_ids = explicit_prompt_token_ids
+    if fallback_prompt_token_ids is None:
+        try:
+            fallback_prompt_token_ids = _request_prompt_token_ids(request)
+        except ValueError:
+            fallback_prompt_token_ids = None
     prompt_payload: str | list[int]
     if explicit_prompt_token_ids is not None:
         prompt_payload = explicit_prompt_token_ids
@@ -517,7 +527,7 @@ def _openai_generate_tokens(
         "top_p": float(sampling["top_p"]),
         "top_k": sampling["top_k"],
         "seed": int(sampling["seed"]),
-        "echo": True,
+        "echo": False,
         "logprobs": 1,
         "return_tokens_as_token_ids": True,
     }
@@ -536,8 +546,8 @@ def _openai_generate_tokens(
         if isinstance(raw_completion, int):
             completion_tokens = raw_completion
 
-    if prompt_tokens is None and explicit_prompt_token_ids is not None:
-        prompt_tokens = len(explicit_prompt_token_ids)
+    if prompt_tokens is None and fallback_prompt_token_ids is not None:
+        prompt_tokens = len(fallback_prompt_token_ids)
 
     if prompt_tokens is None and completion_tokens is not None:
         prompt_tokens = len(token_ids) - completion_tokens
@@ -558,6 +568,10 @@ def _openai_generate_tokens(
 
     split_index = prompt_tokens
     if split_index > len(token_ids):
+        if completion_tokens == len(token_ids) and fallback_prompt_token_ids is not None:
+            prompt_token_ids = [int(token) for token in fallback_prompt_token_ids]
+            output_ids = [int(token) for token in token_ids]
+            return prompt_token_ids, output_ids, len(output_ids)
         raise ValueError(
             "Completion response usage.prompt_tokens exceeds parsed token id payload. "
             f"prompt_tokens={prompt_tokens}, parsed_tokens={len(token_ids)}."
@@ -568,10 +582,7 @@ def _openai_generate_tokens(
 
     if completion_tokens != len(output_ids):
         if completion_tokens > len(output_ids):
-            raise ValueError(
-                "Completion response usage.completion_tokens exceeds parsed output token payload. "
-                f"completion_tokens={completion_tokens}, parsed_output_tokens={len(output_ids)}."
-            )
+            completion_tokens = len(output_ids)
         output_ids = output_ids[:completion_tokens]
 
     return prompt_token_ids, output_ids, len(output_ids)

@@ -140,13 +140,14 @@
     "engine_args": {
       "model": "moonshotai/Kimi-K2-Thinking",
       "trust_remote_code": true,
-      "dtype": "float16",
+      "dtype": "bfloat16",
       "tensor_parallel_size": 8,
       "pipeline_parallel_size": 1,
-      "max_model_len": 262144,
+      "max_model_len": 3072,
       "enable_auto_tool_choice": true,
       "tool_call_parser": "kimi_k2",
-      "reasoning_parser": "kimi_k2"
+      "reasoning_parser": "kimi_k2",
+      "gpu_memory_utilization": 0.975
     }
   },
   "model": {
@@ -208,7 +209,7 @@
         "temperature": 0.0,
         "top_p": 0.95,
         "top_k": 50,
-        "max_tokens": 32,
+        "max_tokens": 200,
         "seed": 424242
       },
       "stop": {
@@ -220,7 +221,7 @@
       "policy": "fixed",
       "schedule": "batch_invariant",
       "max_num_seqs": 1,
-      "max_num_batched_tokens": 4096,
+      "max_num_batched_tokens": 3072,
       "fixed_request_order": true,
       "concurrency": 1
     }

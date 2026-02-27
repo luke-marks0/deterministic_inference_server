@@ -1,41 +1,267 @@
 {
-  "x_base_manifest": "standard-base.json",
+  "schema_version": 1,
+  "kind": "vllm.deterministic_inference_manifest",
   "metadata": {
     "name": "kimi-k2-5",
     "description": "Spec-aligned deterministic manifest for Kimi-K2.5.",
-    "created_at": "2026-02-20T13:13:18Z"
+    "created_at": "2026-02-20T13:13:18Z",
+    "owners": [
+      "ml-platform@example.com"
+    ]
+  },
+  "determinism": {
+    "strict_hardware": false,
+    "compare": {
+      "tokens": {
+        "rule": "exact"
+      },
+      "logits": {
+        "rule": "exact"
+      },
+      "activations": {
+        "rule": "absrel",
+        "atol": 0.0,
+        "rtol": 0.0
+      },
+      "engine_trace": {
+        "rule": "exact"
+      }
+    }
+  },
+  "hardware": {
+    "constraints": {
+      "accelerator_vendor": "nvidia",
+      "gpu_arch_min_cc": "8.0",
+      "allowed_gpu_models": []
+    },
+    "record": {
+      "capture_collect_env": true,
+      "capture_nvidia_smi": true,
+      "capture_driver_versions": true,
+      "capture_pcie_topology": false
+    }
   },
   "artifacts": {
+    "store": {
+      "type": "cas",
+      "path": "state/store"
+    },
     "lockfile": "manifests/kimi-k2-5/manifest.lock.json"
   },
+  "software_stack": {
+    "python": {
+      "version": "3.11.8",
+      "packages": [
+        {
+          "name": "vllm",
+          "source": {
+            "type": "wheel",
+            "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
+          }
+        },
+        {
+          "name": "torch",
+          "source": {
+            "type": "wheel",
+            "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
+          }
+        },
+        {
+          "name": "triton",
+          "source": {
+            "type": "wheel",
+            "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
+          }
+        }
+      ]
+    },
+    "compiled_extensions": []
+  },
+  "cuda_stack": {
+    "userspace": {
+      "cuda_toolkit": {
+        "version": "12.x",
+        "digest": "621e155eb77a75e6f2c4d4cf65177ffd2aa9a2625712443bc35657dc48bc141e"
+      },
+      "cublas": {
+        "version": "12.x",
+        "digest": "7b42da2c381b1945ab964ab47d5e3eb55c68e5bfe9713adc2a34ff8ad58f3827"
+      },
+      "cudnn": {
+        "version": "9.x",
+        "digest": "1218bedb143a5ce463ea551e7530e9c3dd803364b130439b4c182e1aaa5dfa4d"
+      },
+      "nccl": {
+        "version": "2.x",
+        "digest": "c12e64d2c825bbe6b87b17a77c8ecd78e9bdc7126a38867a878e690478ca56e0"
+      }
+    },
+    "env": {
+      "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+      "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
+      "CUDA_VISIBLE_DEVICES": "0,1,2,3,4,5,6,7"
+    },
+    "driver_policy": "pinned_or_recorded"
+  },
   "runtime": {
+    "env": {
+      "PYTHONHASHSEED": "0",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1"
+    },
+    "locale": {
+      "lang": "C.UTF-8",
+      "tz": "UTC"
+    },
+    "threads": {
+      "omp_num_threads": 1,
+      "mkl_num_threads": 1
+    },
+    "network_policy": "online_allowed",
     "execution": {
-      "base_url": "http://127.0.0.1:8006"
+      "backend": "openai_compatible",
+      "base_url": "http://127.0.0.1:8006",
+      "timeout_seconds": 1200,
+      "deterministic_failure_policy": "warn_only",
+      "vllm_image": "docker.io/vllm/vllm-openai@sha256:8c9aaddfa6011b9651d06834d2fb90bdb9ab6ced4b420ec76925024eb12b22d0"
     }
   },
   "vllm": {
+    "mode": "server",
+    "reproducibility": {
+      "enable_batch_invariance": true,
+      "enable_v1_multiprocessing": false
+    },
+    "env": {
+      "VLLM_BATCH_INVARIANT": "0",
+      "VLLM_ENABLE_V1_MULTIPROCESSING": "0",
+      "VLLM_ATTENTION_BACKEND": "TRITON_MLA",
+      "VLLM_USE_DEEP_GEMM": "1",
+      "VLLM_MOE_USE_DEEP_GEMM": "1",
+      "VLLM_DEEP_GEMM_WARMUP": "skip",
+      "VLLM_USE_FLASHINFER_MOE_FP8": "0"
+    },
     "engine_args": {
       "model": "moonshotai/Kimi-K2.5",
       "trust_remote_code": true,
-      "dtype": "float16",
+      "dtype": "bfloat16",
       "tensor_parallel_size": 8,
       "pipeline_parallel_size": 1,
-      "max_model_len": 32768,
-      "mm_encoder_tp_mode": "data",
+      "max_model_len": 2048,
+      "max_num_batched_tokens": 3072,
       "enable_auto_tool_choice": true,
       "tool_call_parser": "kimi_k2",
-      "reasoning_parser": "kimi_k2"
+      "reasoning_parser": "kimi_k2",
+      "gpu_memory_utilization": 0.93
     }
   },
   "model": {
     "weights": {
       "source": {
+        "type": "huggingface",
         "repo": "moonshotai/Kimi-K2.5",
-        "revision": "3367c8d1c68584429fab7faf845a32d5195b6ac1"
+        "revision": "3367c8d1c68584429fab7faf845a32d5195b6ac1",
+        "remote_code_commit": "3367c8d1c68584429fab7faf845a32d5195b6ac1",
+        "remote_code_digest": "bb833fb3b5b85515b2ea4b8621984ae39663eb7f4c3d32e9fae8478d977505ac"
+      },
+      "files": [
+        {
+          "path": "model.safetensors",
+          "digest": "04d9fb8509897aa5de25155ce598ce7c683317e3debee73ad09200a212bba32c"
+        }
+      ]
+    },
+    "tokenizer": {
+      "files": [
+        {
+          "path": "tokenizer.json",
+          "digest": "0a26b53b8d1ea201f2682567c4e55c47c69e44fa331851d6d8b5de1d2dfcd87f"
+        },
+        {
+          "path": "tokenizer_config.json",
+          "digest": "f886a8e06a2fcf5c32fde0c3be99d6c5495599f1470d7e47510048c04c483b9e"
+        },
+        {
+          "path": "special_tokens_map.json",
+          "digest": "8858ec467e53cfcb1cf258716390387369c5fc07aa90946f9a57728f8ad622b6"
+        }
+      ]
+    },
+    "config": {
+      "files": [
+        {
+          "path": "config.json",
+          "digest": "7ea71915caf759de9dfc5bfa721b2fd03811e547bb978e81e5c0cc560a0a5ad2"
+        },
+        {
+          "path": "generation_config.json",
+          "digest": "e9ef6981f8c9b1d0edbbba0e4cf7034e1974805c0950f7274b413d5131683813"
+        }
+      ]
+    },
+    "chat_template": {
+      "file": {
+        "path": "chat_template.jinja",
+        "digest": "65a97e05cf5cac27ca310ae6fc6c703d1eaf493fc10b1f9590643559ce8c4d4e"
       }
     }
   },
+  "inference": {
+    "n_prompts": 100,
+    "request_template": {
+      "kind": "completion",
+      "sampling": {
+        "temperature": 0.0,
+        "top_p": 0.95,
+        "top_k": 50,
+        "max_tokens": 200,
+        "seed": 424242
+      },
+      "stop": {
+        "sequences": [],
+        "token_ids": []
+      }
+    },
+    "batching": {
+      "policy": "fixed",
+      "schedule": "batch_invariant",
+      "max_num_seqs": 1,
+      "max_num_batched_tokens": 3072,
+      "fixed_request_order": true,
+      "concurrency": 1
+    }
+  },
+  "capture": {
+    "tokens": true,
+    "logits": {
+      "enabled": false,
+      "scope": "chosen_only",
+      "dtype": "float16",
+      "capture_prefill": false,
+      "capture_decode": false
+    },
+    "activations": {
+      "enabled": false,
+      "hooks": []
+    },
+    "engine_trace": {
+      "enabled": false,
+      "events": []
+    }
+  },
   "outputs": {
-    "directory": "runs/kimi-k2-5/${run_id}"
+    "directory": "runs/kimi-k2-5/${run_id}",
+    "golden": {
+      "enabled": false
+    },
+    "bundle_policy": {
+      "include": [
+        "manifest",
+        "lock",
+        "tokens",
+        "run_log"
+      ],
+      "retention_days": 30
+    }
   }
 }
