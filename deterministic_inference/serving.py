@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from .common import _normalize_pinned_image_reference, _repo_root
+from .common import _normalize_pinned_image_reference, _repo_root, _resolve_service_url
 
 
 @dataclass(frozen=True)
@@ -159,6 +159,7 @@ def build_serve_plan(
             "VLLM_MAX_NUM_SEQS": str(batching["max_num_seqs"]),
             "VLLM_MAX_NUM_BATCHED_TOKENS": str(max_num_batched_tokens),
             "VLLM_TRUST_REMOTE_CODE": "1" if bool(engine_args.get("trust_remote_code", False)) else "0",
+            "VLLM_ASYNC_SCHEDULING": "1" if bool(engine_args.get("async_scheduling", False)) else "0",
             "VLLM_ENABLE_AUTO_TOOL_CHOICE": (
                 "1" if bool(engine_args.get("enable_auto_tool_choice", False)) else "0"
             ),
@@ -346,7 +347,7 @@ def wait_for_openai_server(
     poll_interval_seconds: float = 2.0,
 ) -> bool:
     deadline = time.time() + float(timeout_seconds)
-    url = f"{base_url.rstrip('/')}/v1/models"
+    url = _resolve_service_url(base_url, "/v1/models")
 
     while time.time() < deadline:
         try:

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "2e8af32acffbe773a554ffe6e3d75c42cad980a42d8b75aad2bf3f76a879b1e2",
-  "generated_at": "2026-03-01T11:51:36Z",
+  "manifest_id": "76a008a8b6f90cf286a00f76ca3090ccd400d3d19e01439b3b33095f9b0abc33",
+  "generated_at": "2026-03-01T12:23:09Z",
   "lock_algorithm": "sha256",
-  "runtime_closure_digest": "ab6d204bd513ed153c7cb2ce9c77a9cf7e0473baca5c8ea84f0003961e06cf30",
+  "runtime_closure_digest": "ca55c90b74c899f630625029aafdf957957f23d280fb78402687d7fd397b52fe",
   "artifacts": [
     {
       "name": "model.weight",
@@ -146,5 +146,5 @@
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "fcfe81a5e03b29e9fff31d1637d8e2e5f9a922f23a1d5e4441fa694f37defb74"
+  "lock_id": "019378e4fd08ce1173bd3904f07844c38cc3e8e987e2be38b2ecc4bcef3987ff"
 }

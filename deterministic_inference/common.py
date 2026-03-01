@@ -8,6 +8,7 @@ import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 SCHEMA_VERSION = 1
 MANIFEST_KIND = "vllm.deterministic_inference_manifest"
@@ -153,3 +154,20 @@ def _prompt_token_matrix_hash(prompt_token_ids_list: list[list[int]]) -> str:
     return hashlib.sha256(
         json.dumps(prompt_token_ids_list, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+
+
+def _resolve_service_url(base_url: str, endpoint_path: str) -> str:
+    parsed = urlparse(base_url.strip())
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError(f"base_url: expected http/https URL, found {base_url!r}")
+
+    suffix = endpoint_path.strip()
+    if not suffix:
+        raise ValueError("endpoint_path: expected non-empty string.")
+    if not suffix.startswith("/"):
+        suffix = f"/{suffix}"
+
+    merged_path = parsed.path.rstrip("/")
+    merged_path = f"{merged_path}{suffix}"
+
+    return urlunparse(parsed._replace(path=merged_path))

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from .common import BUNDLE_KIND, SCHEMA_VERSION, _prompt_token_matrix_hash, _repo_root, _token_ids_hash, _write_json, canonical_sha256, utc_now_iso
+from .common import _resolve_service_url
 from .locking import resolve_lock_path, verify_lock_artifact_integrity
 from .schema import (
     compute_manifest_id,
@@ -494,10 +495,12 @@ def _openai_generate_tokens(
     *,
     request: dict[str, Any],
     manifest: dict[str, Any],
+    base_url_override: str | None = None,
 ) -> tuple[list[int], list[int], int]:
     sampling = request["sampling"]
     execution = manifest["runtime"]["execution"]
-    base_url = str(execution["base_url"]).rstrip("/")
+    configured_base_url = str(execution["base_url"])
+    base_url = str(base_url_override).strip() if isinstance(base_url_override, str) and base_url_override.strip() else configured_base_url
     timeout_seconds = int(execution["timeout_seconds"])
     model_name = str(manifest["vllm"]["engine_args"].get("model", ""))
     explicit_prompt_token_ids = (
@@ -532,7 +535,11 @@ def _openai_generate_tokens(
         "return_tokens_as_token_ids": True,
     }
 
-    response = _post_json(f"{base_url}/v1/completions", payload, timeout_seconds)
+    response = _post_json(
+        _resolve_service_url(base_url, "/v1/completions"),
+        payload,
+        timeout_seconds,
+    )
     token_ids = _extract_response_token_ids(response)
 
     usage = response.get("usage")
@@ -592,6 +599,7 @@ def _generate_tokens_for_request(
     *,
     request: dict[str, Any],
     manifest: dict[str, Any],
+    base_url_override: str | None = None,
 ) -> tuple[list[int], list[int], int]:
     backend = str(manifest["runtime"]["execution"]["backend"])
     sampling = request["sampling"]
@@ -609,6 +617,7 @@ def _generate_tokens_for_request(
         return _openai_generate_tokens(
             request=request,
             manifest=manifest,
+            base_url_override=base_url_override,
         )
 
     raise ValueError(f"Unsupported runtime.execution.backend: {backend}")
@@ -730,6 +739,7 @@ def execute_run(
     run_log_override: Path | None = None,
     run_dir_override: Path | None = None,
     lock_path: Path | None = None,
+    base_url_override: str | None = None,
 ) -> dict[str, Any]:
     if verify_artifact_digests:
         artifact_integrity = verify_lock_artifact_integrity(
@@ -885,6 +895,7 @@ def execute_run(
                 prompt_token_ids, output_token_ids, completion_count = _generate_tokens_for_request(
                     request=request,
                     manifest=manifest,
+                    base_url_override=base_url_override,
                 )
                 sequences.append(
                     {
@@ -993,7 +1004,11 @@ def execute_run(
         "tokenizer_source": model_name,
         "model": model_name,
         "served_model": str(manifest["vllm"]["engine_args"].get("model", model_name)),
-        "base_url": str(manifest["runtime"]["execution"].get("base_url", "")),
+        "base_url": (
+            str(base_url_override)
+            if isinstance(base_url_override, str) and base_url_override.strip()
+            else str(manifest["runtime"]["execution"].get("base_url", ""))
+        ),
         "parameters": {
             "n_prompts": len(sequences),
             "max_tokens": sampling["max_tokens"],

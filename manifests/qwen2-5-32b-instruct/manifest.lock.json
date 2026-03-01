@@ -1,106 +1,106 @@
 {
   "schema_version": 1,
   "kind": "vllm.deterministic_inference_lock",
-  "manifest_id": "2e8af32acffbe773a554ffe6e3d75c42cad980a42d8b75aad2bf3f76a879b1e2",
-  "generated_at": "2026-03-01T11:51:36Z",
+  "manifest_id": "710c018f338064c724f28b5df1fb6a3eb2277e8f5d1f1bb6bb31dc1cf3a54aa5",
+  "generated_at": "2026-03-01T12:42:47Z",
   "lock_algorithm": "sha256",
-  "runtime_closure_digest": "ab6d204bd513ed153c7cb2ce9c77a9cf7e0473baca5c8ea84f0003961e06cf30",
+  "runtime_closure_digest": "640508f85417054b8aae017e8c0ebeed78b5dc8911c85d971c1ca6e0ec666870",
   "artifacts": [
     {
       "name": "model.weight",
       "path": "model.safetensors",
-      "digest": "6d67fd12dafdb9d928b5da454384bfbfd0095e54afa1b621ff0208c995940e11",
+      "digest": "aeb52e7738855f0132ff9f4b78aa9a457ed61016e7809e81eca78c2daf32cd79",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-8B",
-        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+        "repo": "Qwen/Qwen2.5-32B-Instruct",
+        "revision": "main"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer.json",
-      "digest": "bcc429baf1c5e496f99aaf8c4454e619ac8f835b01b38d5888a384e8e35e5295",
+      "digest": "3e13d082d40e2c48886925c175bfc83ff993517860a03a2dd3ef690ddd1ac1a9",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-8B",
-        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+        "repo": "Qwen/Qwen2.5-32B-Instruct",
+        "revision": "main"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "tokenizer_config.json",
-      "digest": "4a23d8e3b29e162601639a8ff4c4c06b764d3ed96bd6b43bdef6c9a141d08eb8",
+      "digest": "dad3b22db9843060f5811cec3ffa67359a0433157b9095a91cc19417ce2dc2e6",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-8B",
-        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+        "repo": "Qwen/Qwen2.5-32B-Instruct",
+        "revision": "main"
       }
     },
     {
       "name": "model.tokenizer",
       "path": "special_tokens_map.json",
-      "digest": "81dfae9254a822e5ff39be6799fe50544f8f8e206b9007df2c93a12e015ff5f2",
+      "digest": "849592ec42e0b501141baa35b457cb366979f2343eef7de4ea1a94c8a4d5c9da",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-8B",
-        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+        "repo": "Qwen/Qwen2.5-32B-Instruct",
+        "revision": "main"
       }
     },
     {
       "name": "model.config",
       "path": "config.json",
-      "digest": "808d3c873f406c575a82e048e2b733f45774acfbb2e9945cd59d0af2ee0c767d",
+      "digest": "3cefe44862041588171bea3ff23399b58e3d0515fad32cda2a3c3be9260d135b",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-8B",
-        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+        "repo": "Qwen/Qwen2.5-32B-Instruct",
+        "revision": "main"
       }
     },
     {
       "name": "model.config",
       "path": "generation_config.json",
-      "digest": "598cf408684bec75e680bba16fae37cbb0e9ce77c5810cf21e176e167e232686",
+      "digest": "f27421ae235e8dadd841b40e52f5f777b1da6eba51c289bb4b7d702bf96bc204",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-8B",
-        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+        "repo": "Qwen/Qwen2.5-32B-Instruct",
+        "revision": "main"
       }
     },
     {
       "name": "model.chat_template",
       "path": "chat_template.jinja",
-      "digest": "fd3b959fe7303d318ca11541d96ab21def8218a1a4c9a9decbe7e53bb89aaebf",
+      "digest": "13cac291e8bf3734ce0183b3fb7370b9f9acb5f793d4cd90aeefcc07aea2c796",
       "retrieval": {
         "type": "huggingface",
-        "repo": "Qwen/Qwen3-8B",
-        "revision": "b968826d9c46dd6066d109eabc6255188de91218"
+        "repo": "Qwen/Qwen2.5-32B-Instruct",
+        "revision": "main"
       }
     },
     {
       "name": "python.package.vllm",
       "path": "",
-      "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b",
+      "digest": "88e8a1226c8fcb7b3ce1d64383de1ba8287b0b1bca6fbe7fc6f4c9e403c7e295",
       "retrieval": {
         "type": "wheel",
-        "digest": "97ff5ba0c359962f3d12625d286990614fb33e122568012992d2e623165a5f8b"
+        "digest": "88e8a1226c8fcb7b3ce1d64383de1ba8287b0b1bca6fbe7fc6f4c9e403c7e295"
       }
     },
     {
       "name": "python.package.torch",
       "path": "",
-      "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937",
+      "digest": "eed5825ac2b223bae5f2bc86fc086069d8676b1ac248b8674cd854d532ab3bd7",
       "retrieval": {
         "type": "wheel",
-        "digest": "11ffd779e02064e548a470e03c44ea1abf964dbea1e52f79241617c25faf3937"
+        "digest": "eed5825ac2b223bae5f2bc86fc086069d8676b1ac248b8674cd854d532ab3bd7"
       }
     },
     {
       "name": "python.package.triton",
       "path": "",
-      "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3",
+      "digest": "b8bb84ffc5b64e38906df5ab4a6f993e29fe4924b3099ff05eaee96ded134949",
       "retrieval": {
         "type": "wheel",
-        "digest": "f57d52ad61f69302c692c028da244ef32828fdf14dc711b657ce8a4db7495cc3"
+        "digest": "b8bb84ffc5b64e38906df5ab4a6f993e29fe4924b3099ff05eaee96ded134949"
       }
     },
     {
@@ -146,5 +146,5 @@
     }
   ],
   "compiled_extensions": [],
-  "lock_id": "fcfe81a5e03b29e9fff31d1637d8e2e5f9a922f23a1d5e4441fa694f37defb74"
+  "lock_id": "59a1866608ec168f29dfc07145c671d026da09788a3753e05089b50e84f8544d"
 }

@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "qwen3-8b": {
+      "config_name": "qwen3-8b",
+      "app_name": "deterministic-inference-vllm",
+      "class_name": "VllmServer",
+      "gpu": "H100",
+      "min_containers": 1,
+      "scaledown_window_seconds": 600,
+      "url": "https://marksluke076--deterministic-inference-vllm-vllmserver-serve.modal.run?config_name=qwen3-8b"
+    }
+  }
+}

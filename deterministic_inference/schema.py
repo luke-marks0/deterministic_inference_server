@@ -334,6 +334,7 @@ def _validate_vllm(vllm: dict[str, Any], errors: list[str]) -> None:
         engine_allowed = {
             "model",
             "trust_remote_code",
+            "async_scheduling",
             "dtype",
             "tensor_parallel_size",
             "pipeline_parallel_size",
@@ -353,6 +354,10 @@ def _validate_vllm(vllm: dict[str, Any], errors: list[str]) -> None:
         trust_remote_code = engine_args.get("trust_remote_code")
         if trust_remote_code is not None and not isinstance(trust_remote_code, bool):
             errors.append(f"{path}.engine_args.trust_remote_code: expected bool when provided.")
+
+        async_scheduling = engine_args.get("async_scheduling")
+        if async_scheduling is not None and not isinstance(async_scheduling, bool):
+            errors.append(f"{path}.engine_args.async_scheduling: expected bool when provided.")
 
         dtype = engine_args.get("dtype")
         if dtype is not None and (not isinstance(dtype, str) or not dtype.strip()):

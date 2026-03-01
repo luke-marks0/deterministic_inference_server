@@ -65,6 +65,10 @@ python -m deterministic_inference.cli build --config configs/my-model.json --upd
 python -m deterministic_inference.cli serve \
   --config configs/my-model.json
 
+# 5d) Start remote Modal serving stack (deploy + warm pool)
+python -m deterministic_inference.cli serve-modal \
+  --config configs/my-model.json
+
 # 5b) List active vLLM serve containers
 python -m deterministic_inference.cli serve list
 
@@ -73,6 +77,9 @@ python -m deterministic_inference.cli serve kill
 
 # 6) Execute run and emit bundle + tokens + run log
 python -m deterministic_inference.cli run --config configs/my-model.json
+
+# 6b) Execute run against Modal endpoint
+python -m deterministic_inference.cli run --config configs/my-model.json --use-modal
 
 # 7) Compare two runs
 python -m deterministic_inference.cli verify \
@@ -94,6 +101,7 @@ python -m deterministic_inference.cli inspect --input runs/<run_id>/bundle.json
 - `lock`: resolve and write lockfile with artifact digests/runtime digest
 - `build`: emit runtime closure metadata (`--update-lock` optionally rewrites lock)
 - `serve`: manage vLLM docker-compose services (`start`, `list`, `kill`)
+- `serve-modal`: manage Modal-backed vLLM services (`start`, `list`, `stop`)
 - `run`: execute inference and emit run bundle artifacts
 - `verify`: compare two bundles and emit report + summary
 - `bundle`: tar/gzip a run directory
@@ -148,6 +156,7 @@ Use `--pull` to fetch the pinned image first.
 
 - `model`
 - `dtype`
+- `async_scheduling`
 - `tensor_parallel_size`
 - `pipeline_parallel_size`
 - `max_model_len`
@@ -165,6 +174,60 @@ python -m deterministic_inference.cli run \
   --config configs/my-model.json \
   --no-verify-artifact-digests
 ```
+
+## Running on Modal (Remote Infrastructure)
+
+This repository includes a Modal-native serving path that moves vLLM from local Docker to remote Modal GPU instances.
+
+### Setup
+
+1. Install Modal SDK/CLI and authenticate:
+
+```bash
+pip install modal
+modal token new
+```
+
+2. Create required Modal resources:
+
+```bash
+modal volume create deterministic-hf-cache --version=2
+modal secret create huggingface-secret HUGGING_FACE_HUB_TOKEN=hf_xxx
+```
+
+### Serve on Modal
+
+```bash
+# deploy app + start (or reuse) config-specific pool
+python -m deterministic_inference.cli serve-modal --config configs/qwen3-8b.json
+
+# inspect locally tracked Modal pools
+python -m deterministic_inference.cli serve-modal list
+
+# scale a config pool down to zero
+python -m deterministic_inference.cli serve-modal stop --name qwen3-8b
+```
+
+### Run against Modal
+
+```bash
+python -m deterministic_inference.cli run \
+  --config configs/qwen3-8b.json \
+  --use-modal
+```
+
+`--use-modal` resolves a deployed Modal web endpoint for the config and uses it as a runtime base URL override for generation calls.
+
+### Image Strategy
+
+The Modal migration is intentionally **one shared image + parametrized pools**:
+
+- one deployed Modal class (`VllmServer`) backed by a pinned vLLM image,
+- one autoscaling container pool per manifest `metadata.name` (class parameter),
+- per-config GPU shape inferred from manifest tensor parallel size and hardware hints.
+
+This avoids maintaining one deployment artifact per config while still isolating runtime pools per model/config.
+If you need different vLLM base images per config, split into separate Modal app deployments.
 
 ## Run Outputs
 

@@ -18,6 +18,10 @@ if [ "${VLLM_TRUST_REMOTE_CODE:-0}" = "1" ]; then
   set -- "$@" --trust-remote-code
 fi
 
+if [ "${VLLM_ASYNC_SCHEDULING:-0}" = "1" ]; then
+  set -- "$@" --async-scheduling
+fi
+
 if [ "${VLLM_ENABLE_AUTO_TOOL_CHOICE:-0}" = "1" ]; then
   set -- "$@" --enable-auto-tool-choice
 fi
